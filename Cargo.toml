@@ -1,0 +1,20 @@
+[package]
+name = "mush"
+version = "0.1.0"
+authors = ["viperscape <chrisfgill@gmail.com>"]
+license = "MIT"
+
+[dependencies.petgraph]
+git = "https://github.com/bluss/petulant-avenger-graphlibrary"
+
+[dependencies.conrod]
+git = "https://github.com/PistonDevelopers/conrod"
+
+[dependencies.pistoncore-glutin_window]
+git = "https://github.com/PistonDevelopers/glutin_window.git"
+
+[dependencies.piston2d-opengl_graphics]
+git = "https://github.com/PistonDevelopers/opengl_graphics.git"
+
+[dependencies.piston]
+git = "https://github.com/PistonDevelopers/piston/"
