@@ -53,23 +53,23 @@ fn main () {
             gl.draw(args.viewport(), |_, gl| {
 
                 // Draw the background.
-                Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl);
+                // Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl);
 
-                TextBox::new(&mut "Node".to_string())
-                    .dimensions(100.0,60.0)
-                    .xy(width as f64/2.0*-1.0+100.0,0.0)
-                    .react(|_s: &mut String|{println!("{:?}",_s)})
-                    .set(0,ui);
+                // TextBox::new(&mut "Node".to_string())
+                //     .dimensions(100.0,60.0)
+                //     .xy(width as f64/2.0*-1.0+100.0,0.0)
+                //     .react(|_s: &mut String|{println!("{:?}",_s)})
+                //     .set(0,ui);
 
 
-                // Draw the button and increment count if pressed..
-                Button::new()
-                    .dimensions(80.0, 40.0)
-                    .label(&args.width.to_string())
-                    .rgba(0.9,0.9,0.9,0.8)
-                    .right(10.0)
-                    .react(|| {})
-                    .set(1, ui);
+                // // Draw the button and increment count if pressed..
+                // Button::new()
+                //     .dimensions(80.0, 40.0)
+                //     .label(&args.width.to_string())
+                //     .rgba(0.9,0.9,0.9,0.8)
+                //     .right(10.0)
+                //     .react(|| {})
+                //     .set(1, ui);
 
                 mush::node::Node::new()
                     .label("Thingy")
