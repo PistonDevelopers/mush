@@ -8,7 +8,7 @@ extern crate opengl_graphics;
 extern crate piston;
 
 use conrod::{Background, Button, Colorable, Labelable, Sizeable, Theme, Ui,
-             Positionable, TextBox};
+             Positionable, TextBox, CustomWidget};
 use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -23,7 +23,7 @@ fn main () {
 
     let mut width = 1024;
     let mut height = 768;
-    
+
     let opengl = OpenGL::_3_2;
     let mut window = GlutinWindow::new(
         opengl,
@@ -36,10 +36,10 @@ fn main () {
        );
 
    // window.window.set_window_resize_callback(Some(resized as fn(u32,u32)));
-    
+
     let event_iter = window.events().ups(180).max_fps(60);
     let mut gl = GlGraphics::new(opengl);
-    let font_path = Path::new("../fonts/SourceCodePro-Regular.otf");
+    let font_path = Path::new("fonts/SourceCodePro-Regular.otf");
     let theme = Theme::default();
     let glyph_cache = GlyphCache::new(&font_path).unwrap();
     let ui = &mut Ui::new(glyph_cache, theme);
@@ -51,7 +51,7 @@ fn main () {
         ui.handle_event(&event);
         if let Some(args) = event.render_args() {
             gl.draw(args.viewport(), |_, gl| {
-                
+
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl);
 
@@ -61,7 +61,7 @@ fn main () {
                     .react(|_s: &mut String|{println!("{:?}",_s)})
                     .set(0,ui);
 
-                
+
                 // Draw the button and increment count if pressed..
                 Button::new()
                     .dimensions(80.0, 40.0)
@@ -71,6 +71,10 @@ fn main () {
                     .react(|| {})
                     .set(1, ui);
 
+                mush::node::Node::new()
+                    .label("Thingy")
+                    .set(2, ui);
+
                 // Draw our Ui!
                 ui.draw(gl);
 
@@ -78,5 +82,5 @@ fn main () {
         }
     }
 
-    
+
 }

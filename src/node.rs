@@ -1,1 +1,148 @@
-pub struct Node;
+use conrod::{CustomWidget, CustomWidgetState};
+use conrod::{Color, Colorable};
+use conrod::Frameable;
+use conrod::{FontSize, Labelable};
+use conrod::{Mouse, MouseButtonState};
+use conrod::{Depth, Dimensions, Position, Positionable};
+use conrod::{UiId, Ui};
+use conrod::WidgetKind;
+
+#[derive(PartialEq, Copy, Clone, Debug)]
+pub enum NodeState {
+    Normal,
+    Dragging,
+}
+
+fn get_new_state(is_over: bool, prev: NodeState, mouse: Mouse) -> NodeState {
+    use self::NodeState::{Normal, Dragging};
+    match (is_over, prev, mouse.left) {
+        (true,  _,  MouseButtonState::Down) => Dragging,
+        _                                   => Normal,
+    }
+}
+
+impl NodeState {
+    /// Alter the widget color depending on the state.
+    fn color(&self, color: Color) -> Color {
+        match *self {
+            NodeState::Normal => color,
+            NodeState::Dragging => color.highlighted(),
+        }
+    }
+}
+
+impl CustomWidgetState for NodeState {
+    fn matches(&self, _other: &NodeState) -> bool { true }
+}
+
+#[derive(Clone, Debug)]
+pub struct Node<'a> {
+    pos: Position,
+    dim: Dimensions,
+    depth: Depth,
+    maybe_label: Option<&'a str>,
+    style: Style,
+}
+
+#[derive(PartialEq, Clone, Debug)]
+pub struct Style {
+    pub maybe_label_color: Option<Color>,
+    pub maybe_label_font_size: Option<u32>,
+}
+
+impl Style {
+    pub fn new() -> Style {
+        Style {
+            maybe_label_color: None,
+            maybe_label_font_size: None,
+        }
+    }
+}
+
+impl<'a> Node<'a> {
+    pub fn new() -> Node<'a> {
+        Node {
+            pos: Position::Absolute(0.0, 0.0),
+            dim: [64.0, 64.0],
+            depth: 0.0,
+            maybe_label: None,
+            style: Style::new(),
+        }
+    }
+}
+
+impl<'a> CustomWidget for Node<'a> {
+
+    type State = NodeState;
+
+    fn set<C>(self, ui_id: UiId, ui: &mut Ui<C>) {
+
+        use elmesque::form::{collage, rect, text};
+        use conrod::utils::is_over_rect;
+        use conrod::WidgetKind;
+
+        let dim = self.dim;
+        let xy = ui.get_xy(self.pos, dim, ui.theme.align.horizontal, ui.theme.align.vertical);
+
+        // FIXME - figure out how to use NodeState instead of () ...
+        // let state = match ui.get_widget(ui_id, WidgetKind::Custom(NodeState::Normal)) {
+        //     &mut WidgetKind::Custom(state) => state,
+        // };
+
+        //let mouse = ui.get_mouse_state(ui_id).relative_to(xy);
+        //let is_over = is_over_rect([0.0, 0.0], mouse.xy, dim);
+        //let new_state = get_new_state(is_over, state, mouse);
+
+        //let new_state = NodeState::Normal;
+
+        let new_state = ();
+
+        let frame_form = rect(dim[0], dim[1]).filled(ui.theme.frame_color);
+
+        //let color = new_state.color(ui.theme.shape_color);
+        let color = ui.theme.shape_color;
+
+        let frame_w = ui.theme.frame_width;
+        let (inner_w, inner_h) = (dim[0] - frame_w * 2.0, dim[1] - frame_w * 2.0);
+        let inner_form = rect(inner_w, inner_h).filled(color);
+
+        let maybe_label_form = self.maybe_label.map(|label_text| {
+            use elmesque::text::Text;
+            let text_color = ui.theme.label_color;
+            let size = ui.theme.font_size_medium;
+            text(Text::from_string(label_text.to_string()).color(text_color).height(size as f64))
+                .shift(xy[0].floor(), xy[1].floor())
+        });
+
+        let form_chain = Some(frame_form).into_iter()
+            .chain(Some(inner_form).into_iter())
+            .map(|form| form.shift(xy[0], xy[1]))
+            .chain(maybe_label_form.into_iter());
+
+        let element = collage(dim[0] as i32, dim[1] as i32, form_chain.collect());
+
+        ui.update_widget(ui_id,
+                         WidgetKind::Custom(new_state),
+                         xy,
+                         self.depth,
+                         Some(element));
+
+    }
+}
+
+impl<'a> Labelable<'a> for Node<'a> {
+    fn label(mut self, text: &'a str) -> Self {
+        self.maybe_label = Some(text);
+        self
+    }
+
+    fn label_color(mut self, color: Color) -> Self {
+        self.style.maybe_label_color = Some(color);
+        self
+    }
+
+    fn label_font_size(mut self, size: FontSize) -> Self {
+        self.style.maybe_label_font_size = Some(size);
+        self
+    }
+}
