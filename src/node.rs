@@ -3,9 +3,9 @@ use conrod::{Color, Colorable};
 use conrod::Frameable;
 use conrod::{FontSize, Labelable};
 use conrod::{Mouse, MouseButtonState};
-use conrod::{Depth, Dimensions, Position, Positionable};
+use conrod::{Depth, Dimensions, Position, Positionable, HorizontalAlign, VerticalAlign, Sizeable};
 use conrod::{UiId, Ui};
-use conrod::WidgetKind;
+use conrod::{WidgetUpdate};
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum NodeState {
@@ -32,6 +32,7 @@ impl NodeState {
 }
 
 impl CustomWidgetState for NodeState {
+    fn init() -> Self { NodeState::Normal }
     fn matches(&self, _other: &NodeState) -> bool { true }
 }
 
@@ -46,6 +47,9 @@ pub struct Node<'a> {
 
 #[derive(PartialEq, Clone, Debug)]
 pub struct Style {
+    pub maybe_color: Option<Color>,
+    pub maybe_frame: Option<f64>,
+    pub maybe_frame_color: Option<Color>,
     pub maybe_label_color: Option<Color>,
     pub maybe_label_font_size: Option<u32>,
 }
@@ -53,6 +57,9 @@ pub struct Style {
 impl Style {
     pub fn new() -> Style {
         Style {
+            maybe_color: None,
+            maybe_frame: None,
+            maybe_frame_color: None,
             maybe_label_color: None,
             maybe_label_font_size: None,
         }
@@ -75,7 +82,7 @@ impl<'a> CustomWidget for Node<'a> {
 
     type State = NodeState;
 
-    fn set<C>(self, ui_id: UiId, ui: &mut Ui<C>) {
+    fn update<C>(self, state: NodeState, ui_id: UiId, ui: &mut Ui<C, Node<'a>>) -> WidgetUpdate<NodeState> {
 
         use elmesque::form::{collage, rect, text};
         use conrod::utils::is_over_rect;
@@ -84,23 +91,16 @@ impl<'a> CustomWidget for Node<'a> {
         let dim = self.dim;
         let xy = ui.get_xy(self.pos, dim, ui.theme.align.horizontal, ui.theme.align.vertical);
 
-        // FIXME - figure out how to use NodeState instead of () ...
-        // let state = match ui.get_widget(ui_id, WidgetKind::Custom(NodeState::Normal)) {
-        //     &mut WidgetKind::Custom(state) => state,
-        // };
+        let mouse = ui.get_mouse_state(ui_id).relative_to(xy);
+        let is_over = is_over_rect([0.0, 0.0], mouse.xy, dim);
+        let new_state = get_new_state(is_over, state, mouse);
 
-        //let mouse = ui.get_mouse_state(ui_id).relative_to(xy);
-        //let is_over = is_over_rect([0.0, 0.0], mouse.xy, dim);
-        //let new_state = get_new_state(is_over, state, mouse);
-
-        //let new_state = NodeState::Normal;
-
-        let new_state = ();
+        // TODO - use color, frame attributes from style
+        // TODO - refactor element building into a 'new_element' function/method (see builtin Conrod widgets)
 
         let frame_form = rect(dim[0], dim[1]).filled(ui.theme.frame_color);
 
-        //let color = new_state.color(ui.theme.shape_color);
-        let color = ui.theme.shape_color;
+        let color = new_state.color(ui.theme.shape_color);
 
         let frame_w = ui.theme.frame_width;
         let (inner_w, inner_h) = (dim[0] - frame_w * 2.0, dim[1] - frame_w * 2.0);
@@ -121,12 +121,12 @@ impl<'a> CustomWidget for Node<'a> {
 
         let element = collage(dim[0] as i32, dim[1] as i32, form_chain.collect());
 
-        ui.update_widget(ui_id,
-                         WidgetKind::Custom(new_state),
-                         xy,
-                         self.depth,
-                         Some(element));
-
+        WidgetUpdate {
+            new_state: new_state,
+            xy: xy,
+            depth: self.depth,
+            element: element
+        }
     }
 }
 
@@ -143,6 +143,56 @@ impl<'a> Labelable<'a> for Node<'a> {
 
     fn label_font_size(mut self, size: FontSize) -> Self {
         self.style.maybe_label_font_size = Some(size);
+        self
+    }
+}
+
+// TODO - determine if it even makes sense to implement Positionable,
+// Seems to me that we would only ever need to support positioning relative to some container (ie 'toolpane'?)
+impl<'a> Positionable for Node<'a> {
+    fn position(mut self, pos: Position) -> Node<'a> {
+        self.pos = pos;
+        self
+    }
+
+    #[inline]
+    fn horizontal_align(self, _h_align: HorizontalAlign) -> Self {
+        self
+    }
+
+    #[inline]
+    fn vertical_align(self, _v_align: VerticalAlign) -> Self {
+        self
+    }
+}
+
+impl<'a> Sizeable for Node<'a> {
+    #[inline]
+    fn width(self, w: f64) -> Self {
+        let h = self.dim[1];
+        Node { dim: [w, h], ..self }
+    }
+    #[inline]
+    fn height(self, h: f64) -> Self {
+        let w = self.dim[0];
+        Node { dim: [w, h], ..self }
+    }
+}
+
+impl<'a> Colorable for Node<'a> {
+    fn color(mut self, color: Color) -> Self {
+        self.style.maybe_color = Some(color);
+        self
+    }
+}
+
+impl<'a> Frameable for Node<'a> {
+    fn frame(mut self, width: f64) -> Self {
+        self.style.maybe_frame = Some(width);
+        self
+    }
+    fn frame_color(mut self, color: Color) -> Self {
+        self.style.maybe_frame_color = Some(color);
         self
     }
 }
