@@ -73,6 +73,8 @@ fn main () {
 
                 mush::node::Node::new()
                     .label("Thingy")
+                    .xy(100.0, 100.0)
+                    .dimensions(100.0, 40.0)
                     .set(2, ui);
 
                 // Draw our Ui!
