@@ -6,6 +6,7 @@ use conrod::{Mouse, MouseButtonState};
 use conrod::{Depth, Dimensions, Position, Positionable, HorizontalAlign, VerticalAlign, Sizeable};
 use conrod::{UiId, Ui};
 use conrod::{WidgetUpdate};
+use conrod::CharacterCache;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum NodeState {
@@ -82,11 +83,12 @@ impl<'a> CustomWidget for Node<'a> {
 
     type State = NodeState;
 
-    fn update<C>(self, state: NodeState, ui_id: UiId, ui: &mut Ui<C, Node<'a>>) -> WidgetUpdate<NodeState> {
+    fn update<C>(self, state: NodeState, ui_id: UiId, ui: &mut Ui<C, Node<'a>>) -> WidgetUpdate<NodeState>
+        where C: CharacterCache
+    {
 
         use elmesque::form::{collage, rect, text};
         use conrod::utils::is_over_rect;
-        use conrod::WidgetKind;
 
         let dim = self.dim;
         let xy = ui.get_xy(self.pos, dim, ui.theme.align.horizontal, ui.theme.align.vertical);
