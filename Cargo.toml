@@ -10,6 +10,9 @@ git = "https://github.com/bluss/petulant-avenger-graphlibrary"
 [dependencies.conrod]
 git = "https://github.com/PistonDevelopers/conrod"
 
+[dependencies.elmesque]
+git = "https://github.com/mitchmindtree/elmesque"
+
 [dependencies.pistoncore-glutin_window]
 git = "https://github.com/PistonDevelopers/glutin_window.git"
 
