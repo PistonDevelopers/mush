@@ -1,13 +1,13 @@
 extern crate mush;
 
-use mush::{ToolPane};
+use mush::{NodeContainer};
 
 extern crate conrod;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate piston;
 
-use conrod::{Background, Button, Colorable, Labelable, Sizeable, Theme, Ui,
+use conrod::{Background, Button, Toggle , Colorable, Labelable, Sizeable, Theme, Ui,
              Positionable, TextBox, CustomWidget, Position};
 use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
@@ -33,17 +33,18 @@ fn main () {
             .samples(4)
        );
 
-   // window.window.set_window_resize_callback(Some(resized as fn(u32,u32)));
+    
 
     let event_iter = window.events().ups(180).max_fps(60);
     let mut gl = GlGraphics::new(opengl);
     let font_path = Path::new("fonts/SourceCodePro-Regular.otf");
     let theme = Theme::default();
     let glyph_cache = GlyphCache::new(&font_path).unwrap();
-    let ui = &mut Ui::new(glyph_cache, theme);
-
-    let mut count: u32 = 0;
-
+    let mut ui = &mut Ui::new(glyph_cache, theme);
+    
+    let mut cont = NodeContainer::new(0,[120.0,120.0]);
+    let mut cont2 = NodeContainer::new(6,[400.0,200.0]); //for now trakc index manually, so no overlaps. It may be best to use a NodePane controller, which handles this state/count
+    
     for event in event_iter {
         ui.handle_event(&event);
         
@@ -51,18 +52,23 @@ fn main () {
             gl.draw(args.viewport(), |_, gl| {
 
                 // Draw the background.
-                // Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl);
+                Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-
-                mush::node::Node::new()
-                    .label("Thingy")
-                    .xy(100.0, 100.0)
-                    .dimensions(100.0, 40.0)
-                    .set(2, ui);
-
+                cont.update(ui.mouse.xy);
+                cont.draw(&mut ui);
+                
+                cont2.update(ui.mouse.xy);
+                cont2.draw(&mut ui);
+                
+                /* mush::node::Node::new()
+                .label("Thingy")
+                .xy(100.0, 100.0)
+                .dimensions(100.0, 40.0)
+                .set(2, ui);*/
+                
                 // Draw our Ui!
                 ui.draw(gl);
-
+                
             });
         }
     }
