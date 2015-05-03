@@ -8,7 +8,7 @@ extern crate opengl_graphics;
 extern crate piston;
 
 use conrod::{Background, Button, Colorable, Labelable, Sizeable, Theme, Ui,
-             Positionable, TextBox, CustomWidget};
+             Positionable, TextBox, CustomWidget, Position};
 use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -19,8 +19,6 @@ use std::path::Path;
 //fn resized(w:u32,h:u32) {width=w; height=h;}
 
 fn main () {
-    mush::graphs();
-
     let mut width = 1024;
     let mut height = 768;
 
@@ -46,30 +44,15 @@ fn main () {
 
     let mut count: u32 = 0;
 
-
     for event in event_iter {
         ui.handle_event(&event);
+        
         if let Some(args) = event.render_args() {
             gl.draw(args.viewport(), |_, gl| {
 
                 // Draw the background.
                 // Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl);
 
-                // TextBox::new(&mut "Node".to_string())
-                //     .dimensions(100.0,60.0)
-                //     .xy(width as f64/2.0*-1.0+100.0,0.0)
-                //     .react(|_s: &mut String|{println!("{:?}",_s)})
-                //     .set(0,ui);
-
-
-                // // Draw the button and increment count if pressed..
-                // Button::new()
-                //     .dimensions(80.0, 40.0)
-                //     .label(&args.width.to_string())
-                //     .rgba(0.9,0.9,0.9,0.8)
-                //     .right(10.0)
-                //     .react(|| {})
-                //     .set(1, ui);
 
                 mush::node::Node::new()
                     .label("Thingy")

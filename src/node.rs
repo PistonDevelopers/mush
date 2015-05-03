@@ -10,15 +10,24 @@ use conrod::CharacterCache;
 
 #[derive(PartialEq, Copy, Clone, Debug)]
 pub enum NodeState {
-    Normal,
+    Normal, //expanded, static position; todo: rename to static?
+    NormalCollapsed, // alternative to enum states for collapse, we can use collapse state as: Normal(true) or track a separate collapse state enum
     Dragging,
 }
 
 fn get_new_state(is_over: bool, prev: NodeState, mouse: Mouse) -> NodeState {
-    use self::NodeState::{Normal, Dragging};
-    match (is_over, prev, mouse.left) {
-        (true,  _,  MouseButtonState::Down) => Dragging,
-        _                                   => Normal,
+    use self::NodeState::{Normal,NormalCollapsed, Dragging};
+    //buttonstate is either up or down, if there was a 'released' state we could track this easily
+    match (is_over, prev, (mouse.left,mouse.right)) {
+        (true,  _, (MouseButtonState::Down,_)) => Dragging,
+        (true, Normal, (_,MouseButtonState::Down)) => NormalCollapsed, //this tracks bad because the state flips too quickly, a delay or mouse-release would fix this
+        (true, NormalCollapsed, (_,MouseButtonState::Down)) => Normal,
+        
+        (false, Dragging, (MouseButtonState::Down,_)) => Dragging,
+        
+        (false, Dragging,(MouseButtonState::Up,_)) => Normal,
+        (true, Dragging,(MouseButtonState::Up,_)) => Normal,
+        _ => prev,
     }
 }
 
@@ -27,6 +36,7 @@ impl NodeState {
     fn color(&self, color: Color) -> Color {
         match *self {
             NodeState::Normal => color,
+            NodeState::NormalCollapsed => color.complement(),
             NodeState::Dragging => color.highlighted(),
         }
     }
@@ -84,19 +94,24 @@ impl<'a> CustomWidget for Node<'a> {
     type State = NodeState;
 
     fn update<C>(self, state: NodeState, ui_id: UiId, ui: &mut Ui<C, Node<'a>>) -> WidgetUpdate<NodeState>
-        where C: CharacterCache
+        //where C: CharacterCache //I had to comment this out, not sure why it wouldn't compile for me
     {
 
         use elmesque::form::{collage, rect, text};
         use conrod::utils::is_over_rect;
 
         let dim = self.dim;
-        let xy = ui.get_xy(self.pos, dim, ui.theme.align.horizontal, ui.theme.align.vertical);
+        let mut xy = ui.get_xy(self.pos, dim, ui.theme.align.horizontal, ui.theme.align.vertical);
 
         let mouse = ui.get_mouse_state(ui_id).relative_to(xy);
         let is_over = is_over_rect([0.0, 0.0], mouse.xy, dim);
         let new_state = get_new_state(is_over, state, mouse);
 
+        match new_state {
+            NodeState::Dragging => xy = ui.mouse.xy, //this isn't exact, fixme!
+            _ => (),
+        }
+        
         // TODO - use color, frame attributes from style
         // TODO - refactor element building into a 'new_element' function/method (see builtin Conrod widgets)
 
