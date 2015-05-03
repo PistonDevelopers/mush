@@ -1,4 +1,8 @@
-## graph library gui ##
+# Mush
+
+[![Build Status](https://travis-ci.org/PistonDevelopers/mush.png?branch=master)](https://travis-ci.org/PistonDevelopers/mush)
+
+A graph structure editor library for Conrod.
 
 ---
 
