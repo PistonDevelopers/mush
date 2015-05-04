@@ -1,6 +1,7 @@
 extern crate conrod;
 extern crate elmesque;
 extern crate opengl_graphics;
+extern crate petgraph;
 
 pub use toolpane::{ToolPane};
 pub use graph::{graphs};
@@ -10,8 +11,12 @@ pub mod node;
 pub mod graph;
 
 
-use conrod::{Ui,Label,Button,Positionable,Sizeable};
+// note: this should probably be moved to another file
+// perhaps container.rs? where node.rs would contain node-graph specifics?
+use conrod::{Ui,Label,Button,Positionable,Sizeable,Labelable,Frameable};
 use opengl_graphics::glyph_cache::GlyphCache;
+use petgraph::graph::{NodeIndex};
+use petgraph::{Graph};
 // we have to track actions outside of a conrod widget, from what I understand, for us to manipulate widget to widget
 // hence the nodecontainer, which lays out the node object visually, and controls its appearance
 pub struct NodeContainer {
@@ -20,22 +25,23 @@ pub struct NodeContainer {
     collapse: bool,
     destroy: bool,
     sidx: usize, //start index
+    nidx: NodeIndex, //index to node in petgraph
 }
 
 impl NodeContainer {
-    pub fn new(idx: usize, xy:[f64;2]) -> NodeContainer {
+    pub fn new(sidx: usize, xy:[f64;2], nidx: NodeIndex) -> NodeContainer {
         NodeContainer {
             xy: xy,
             drag: false,
             collapse: false,
             destroy: false,
             // we need a starting index so conrod is happy, it'd make more sense if conrod returned an index when creating the widgets; instead we'll track manually
-            sidx: idx,
+            sidx: sidx,
+            nidx: nidx,
         }
     }
-    pub fn draw(&mut self, ui: &mut Ui<GlyphCache>) {
-        // todo: update graph if we destroy node
-        if self.destroy { return } // probably should do a real drop!
+    pub fn draw(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut Graph<bool,bool>) {
+        if self.destroy { return }
         
         let idx = self.sidx;
         Button::new() //this should be a press-action, not a release; fixme with custom widget! also conrod should have a drag controller widget, which is basically what we're building
@@ -44,20 +50,28 @@ impl NodeContainer {
             .react(|| { self.drag = !self.drag; })
             .set(idx,ui);
 
+        let mut cl = "<";
+        if self.collapse { cl = ">"; }
+        
         Button::new()
             .right(5.0)
+            .label(cl)
             .dimensions(20.0,20.0)
             .react(|| { self.collapse = !self.collapse; })
             .set(idx+1,ui);
 
         Button::new()
             .right(5.0)
+            .label("x")
             .dimensions(20.0,20.0)
-            .react(|| { self.destroy=true; })
+            .react(|| {
+                graph.remove_node(self.nidx);
+                self.destroy=true;
+            })
             .set(idx+2,ui);
 
         if !self.collapse {
-            Label::new(&idx.to_string())
+            Label::new(&self.nidx.index().to_string())
                 .down_from(idx, 5.0)
                 .set(idx+3,ui);
         }

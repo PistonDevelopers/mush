@@ -1,6 +1,6 @@
 extern crate mush;
 
-use mush::{NodeContainer};
+use mush::{NodeContainer,ToolPane};
 
 extern crate conrod;
 extern crate glutin_window;
@@ -15,6 +15,9 @@ use opengl_graphics::glyph_cache::GlyphCache;
 use piston::event::*;
 use piston::window::{ WindowSettings, Size };
 use std::path::Path;
+
+extern crate petgraph;
+use self::petgraph::{Graph};
 
 //fn resized(w:u32,h:u32) {width=w; height=h;}
 
@@ -33,6 +36,8 @@ fn main () {
             .samples(4)
        );
 
+    let mut tools = ToolPane::new(4); //nodecontainer has 4 widgets
+    let mut graph = Graph::new();
     
 
     let event_iter = window.events().ups(180).max_fps(60);
@@ -41,9 +46,8 @@ fn main () {
     let theme = Theme::default();
     let glyph_cache = GlyphCache::new(&font_path).unwrap();
     let mut ui = &mut Ui::new(glyph_cache, theme);
+
     
-    let mut cont = NodeContainer::new(0,[120.0,120.0]);
-    let mut cont2 = NodeContainer::new(6,[400.0,200.0]); //for now trakc index manually, so no overlaps. It may be best to use a NodePane controller, which handles this state/count
     
     for event in event_iter {
         ui.handle_event(&event);
@@ -54,11 +58,7 @@ fn main () {
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-                cont.update(ui.mouse.xy);
-                cont.draw(&mut ui);
-                
-                cont2.update(ui.mouse.xy);
-                cont2.draw(&mut ui);
+                tools.draw(&mut ui, &mut graph);
                 
                 /* mush::node::Node::new()
                 .label("Thingy")
