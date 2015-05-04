@@ -53,7 +53,7 @@ impl ToolPane {
 
         let xy = ui.mouse.xy;
         for n in self.nodes.iter_mut() {
-            n.update(xy);
+            n.update(xy, graph);
             n.draw(ui,graph);
         }
     }

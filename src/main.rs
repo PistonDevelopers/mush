@@ -38,6 +38,10 @@ impl EditableNode for NodeState {
         self.position
     }
 
+    fn set_position(&mut self, position: [f64; 2]) {
+        self.position = position;
+    }
+
     fn default() -> Self {
         NodeState { position: [0.0, 0.0] }
     }

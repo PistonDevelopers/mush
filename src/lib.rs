@@ -12,6 +12,7 @@ pub mod graph;
 
 pub trait EditableNode {
     fn get_position(&self) -> [f64; 2];
+    fn set_position(&mut self, [f64; 2]);
     fn default() -> Self;
 }
 
@@ -88,10 +89,13 @@ impl NodeContainer {
         }
     }
 
-    pub fn update(&mut self, xy: [f64;2]) {
+    pub fn update<N, E>(&mut self, xy: [f64;2], graph: &mut Graph<N, E>)
+        where N: EditableNode, E: EditableEdge
+    {
         // check for destroy until we formally remove nodecontainer
         if !self.destroy && self.drag {
             self.xy = xy;
+            graph[self.nidx].set_position(xy);
         }
     }
 }
