@@ -10,6 +10,15 @@ pub mod toolpane;
 pub mod node;
 pub mod graph;
 
+pub trait EditableNode {
+    fn get_position(&self) -> [f64; 2];
+    fn set_position(&mut self, [f64; 2]);
+    fn default() -> Self;
+}
+
+pub trait EditableEdge {
+    fn default() -> Self;
+}
 
 // note: this should probably be moved to another file
 // perhaps container.rs? where node.rs would contain node-graph specifics?
@@ -40,9 +49,12 @@ impl NodeContainer {
             nidx: nidx,
         }
     }
-    pub fn draw(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut Graph<bool,bool>) {
+
+    pub fn draw<N, E>(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut Graph<N, E>)
+        where N: EditableNode, E: EditableEdge
+    {
         if self.destroy { return }
-        
+
         let idx = self.sidx;
         Button::new() //this should be a press-action, not a release; fixme with custom widget! also conrod should have a drag controller widget, which is basically what we're building
             .xy(self.xy[0], self.xy[1])
@@ -52,7 +64,7 @@ impl NodeContainer {
 
         let mut cl = "<";
         if self.collapse { cl = ">"; }
-        
+
         Button::new()
             .right(5.0)
             .label(cl)
@@ -76,11 +88,14 @@ impl NodeContainer {
                 .set(idx+3,ui);
         }
     }
-    
-    pub fn update(&mut self, xy: [f64;2]) {
+
+    pub fn update<N, E>(&mut self, xy: [f64;2], graph: &mut Graph<N, E>)
+        where N: EditableNode, E: EditableEdge
+    {
         // check for destroy until we formally remove nodecontainer
         if !self.destroy && self.drag {
             self.xy = xy;
+            graph[self.nidx].set_position(xy);
         }
     }
 }
