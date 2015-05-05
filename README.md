@@ -4,6 +4,8 @@
 
 A graph structure editor library for Conrod.
 
+[Documentation](http://docs.piston.rs/mush/mush/)
+
 ---
 
 on the radar:
