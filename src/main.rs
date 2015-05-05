@@ -1,6 +1,6 @@
 extern crate mush;
 
-use mush::{NodeContainer, ToolPane, EditableNode, EditableEdge};
+use mush::{NodeContainer, ToolPane, EditableNode, EditableEdge, Edge, NodeState,Intrinsics};
 
 
 extern crate conrod;
@@ -22,29 +22,17 @@ use self::petgraph::{Graph};
 
 //fn resized(w:u32,h:u32) {width=w; height=h;}
 
-#[derive(Debug)]
-struct NodeState {
-    position: [f64; 2]
+
+// custom node struct
+struct Node {
+    some_state: bool,
+    base: NodeState, //must implement some base state, and impl it
 }
-
-#[derive(Debug)]
-struct Edge;
-impl EditableEdge for Edge {
-    fn default() -> Self { Edge }
-}
-
-impl EditableNode for NodeState {
-    fn get_position(&self) -> [f64; 2] {
-        self.position
-    }
-
-    fn set_position(&mut self, position: [f64; 2]) {
-        self.position = position;
-    }
-
-    fn default() -> Self {
-        NodeState { position: [0.0, 0.0] }
-    }
+impl Intrinsics for Node {
+    fn get_base(&self) -> &NodeState { &self.base }
+    fn get_base_mut(&mut self) -> &mut NodeState { &mut self.base }
+    fn default() -> Node { Node { some_state:false,
+                                  base: NodeState::default() }}
 }
 
 fn main () {
@@ -65,9 +53,12 @@ fn main () {
     // Initialize the graph structure
     let mut graph = Graph::new();
 
-    let a = graph.add_node(NodeState { position: [100.0, 100.0] });
-    let b = graph.add_node(NodeState { position: [100.0, 0.0] });
-    let c = graph.add_node(NodeState { position: [0.0, 100.0] });
+    let a = graph.add_node(Node { some_state: false,
+                                  base: NodeState::new([100.0, 100.0]) });
+    let b = graph.add_node(Node { some_state: false,
+                                  base: NodeState::new([100.0, 0.0]) });
+    let c = graph.add_node(Node { some_state: false,
+                                  base: NodeState::new([0.0, 100.0]) });
     graph.add_edge(a,b, Edge::default());
     graph.add_edge(b,c, Edge::default());
 

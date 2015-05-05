@@ -3,6 +3,7 @@ extern crate petgraph;
 use ::EditableNode;
 use ::EditableEdge;
 use ::NodeContainer;
+use ::{Intrinsics};
 use opengl_graphics::glyph_cache::GlyphCache;
 use conrod::{Ui,Label,Button,Positionable,Sizeable,Labelable};
 use self::petgraph::{Graph};
@@ -17,7 +18,7 @@ pub struct ToolPane {
 impl ToolPane {
 
     pub fn new<N, E>(offset:usize, graph: &Graph<N, E>) -> ToolPane
-        where N: EditableNode, E: EditableEdge
+        where N: Intrinsics, E: EditableEdge
     {
         let mut tool_pane = ToolPane {
             noffset: offset,
@@ -25,7 +26,7 @@ impl ToolPane {
         };
 
         for (i, node) in graph.raw_nodes().iter().enumerate() {
-            let position = node.weight.get_position(); // data stored in 'weight'
+            let position = node.weight.get_base().get_position(); // data stored in 'weight'
             let nuid = (tool_pane.nodes.len() + 2) * tool_pane.noffset;
             let node_index = NodeIndex::new(i);
             tool_pane.nodes.push(NodeContainer::new(nuid, position, node_index));
@@ -35,7 +36,7 @@ impl ToolPane {
     }
 
     pub fn draw<N, E>(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut Graph<N, E>)
-        where N: EditableNode, E: EditableEdge
+        where N: Intrinsics, E: EditableEdge
     {
         // we should use a canvas to place this appropriately
         Button::new()
@@ -44,7 +45,7 @@ impl ToolPane {
             .dimensions(100.0,40.0)
             .react(|| {
                 let node = N::default();
-                let position = node.get_position();
+                let position = node.get_base().get_position();
                 let node_index = graph.add_node(node);
                 let nuid = (self.nodes.len() + 2) * self.noffset;
                 self.nodes.push(NodeContainer::new(nuid, position, node_index));

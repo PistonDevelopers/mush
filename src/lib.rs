@@ -5,6 +5,7 @@ extern crate petgraph;
 
 pub use toolpane::{ToolPane};
 pub use graph::{graphs};
+pub use node::{NodeState,Intrinsics,Edge};
 
 pub mod toolpane;
 pub mod node;
@@ -51,7 +52,7 @@ impl NodeContainer {
     }
 
     pub fn draw<N, E>(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut Graph<N, E>)
-        where N: EditableNode, E: EditableEdge
+        where N: Intrinsics, E: EditableEdge
     {
         if self.destroy { return }
 
@@ -90,12 +91,12 @@ impl NodeContainer {
     }
 
     pub fn update<N, E>(&mut self, xy: [f64;2], graph: &mut Graph<N, E>)
-        where N: EditableNode, E: EditableEdge
+        where N: Intrinsics, E: EditableEdge
     {
         // check for destroy until we formally remove nodecontainer
         if !self.destroy && self.drag {
             self.xy = xy;
-            graph[self.nidx].set_position(xy);
+            graph[self.nidx].get_base_mut().set_position(xy);
         }
     }
 }
