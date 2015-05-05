@@ -4,21 +4,11 @@ extern crate opengl_graphics;
 extern crate petgraph;
 
 pub use toolpane::{ToolPane};
-pub use graph::{graphs};
+pub use graph::{EditableNode, EditableEdge};
 
 pub mod widgets;
 pub mod toolpane;
 pub mod graph;
-
-pub trait EditableNode {
-    fn get_position(&self) -> [f64; 2];
-    fn set_position(&mut self, [f64; 2]);
-    fn default() -> Self;
-}
-
-pub trait EditableEdge {
-    fn default() -> Self;
-}
 
 // note: this should probably be moved to another file
 // perhaps container.rs? where node.rs would contain node-graph specifics?

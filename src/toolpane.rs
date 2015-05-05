@@ -16,7 +16,7 @@ pub struct ToolPane {
 
 impl ToolPane {
 
-    pub fn new<N, E>(offset:usize, graph: &Graph<N, E>) -> ToolPane
+    pub fn new<N, E>(offset:usize, source_graph: &Graph<N, E>) -> ToolPane
         where N: EditableNode, E: EditableEdge
     {
         let mut tool_pane = ToolPane {
@@ -24,7 +24,7 @@ impl ToolPane {
             nodes: vec!()
         };
 
-        for (i, node) in graph.raw_nodes().iter().enumerate() {
+        for (i, node) in source_graph.raw_nodes().iter().enumerate() {
             let position = node.weight.get_position(); // data stored in 'weight'
             let nuid = (tool_pane.nodes.len() + 2) * tool_pane.noffset;
             let node_index = NodeIndex::new(i);
@@ -33,6 +33,8 @@ impl ToolPane {
 
         tool_pane
     }
+
+    // TODO - 'export' internal graph in original source graph format
 
     pub fn draw<N, E>(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut Graph<N, E>)
         where N: EditableNode, E: EditableEdge

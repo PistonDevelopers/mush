@@ -23,17 +23,17 @@ use self::petgraph::{Graph};
 //fn resized(w:u32,h:u32) {width=w; height=h;}
 
 #[derive(Debug)]
-struct NodeState {
+struct DemoNode {
     position: [f64; 2]
 }
 
 #[derive(Debug)]
-struct Edge;
-impl EditableEdge for Edge {
-    fn default() -> Self { Edge }
+struct DemoEdge;
+impl EditableEdge for DemoEdge {
+    fn default() -> Self { DemoEdge }
 }
 
-impl EditableNode for NodeState {
+impl EditableNode for DemoNode {
     fn get_position(&self) -> [f64; 2] {
         self.position
     }
@@ -43,7 +43,7 @@ impl EditableNode for NodeState {
     }
 
     fn default() -> Self {
-        NodeState { position: [0.0, 0.0] }
+        DemoNode { position: [0.0, 0.0] }
     }
 }
 
@@ -65,11 +65,11 @@ fn main () {
     // Initialize the graph structure
     let mut graph = Graph::new();
 
-    let a = graph.add_node(NodeState { position: [100.0, 100.0] });
-    let b = graph.add_node(NodeState { position: [100.0, 0.0] });
-    let c = graph.add_node(NodeState { position: [0.0, 100.0] });
-    graph.add_edge(a,b, Edge::default());
-    graph.add_edge(b,c, Edge::default());
+    let a = graph.add_node(DemoNode { position: [100.0, 100.0] });
+    let b = graph.add_node(DemoNode { position: [100.0, 0.0] });
+    let c = graph.add_node(DemoNode { position: [0.0, 100.0] });
+    graph.add_edge(a,b, DemoEdge::default());
+    graph.add_edge(b,c, DemoEdge::default());
 
     let mut tools = ToolPane::new(4, &graph); //nodecontainer has 4 widgets
 
