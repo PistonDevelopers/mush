@@ -22,12 +22,12 @@ use self::petgraph::{Graph};
 
 //fn resized(w:u32,h:u32) {width=w; height=h;}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct DemoNode {
     position: [f64; 2]
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct DemoEdge;
 impl EditableEdge for DemoEdge {
     fn default() -> Self { DemoEdge }
@@ -71,7 +71,9 @@ fn main () {
     graph.add_edge(a,b, DemoEdge::default());
     graph.add_edge(b,c, DemoEdge::default());
 
-    let mut tools = ToolPane::new(4, &graph); //nodecontainer has 4 widgets
+    // Let ui graph allocate UiIds starting at 100. Not sure if this is a good idea..
+    let ui_id_offset = 100;
+    let mut tools = ToolPane::new(ui_id_offset, &graph);
 
     let event_iter = window.events().ups(180).max_fps(60);
     let mut gl = GlGraphics::new(opengl);
@@ -90,7 +92,7 @@ fn main () {
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-                tools.draw(&mut ui, &mut graph);
+                tools.draw(&mut ui);
 
                 /* mush::node::Node::new()
                 .label("Thingy")
