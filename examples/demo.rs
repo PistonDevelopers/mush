@@ -73,9 +73,12 @@ fn main () {
     graph.add_edge(a,b, DemoEdge::default());
     graph.add_edge(b,c, DemoEdge::default());
 
+    println!("{:?}", graph);
+
     // Let ui graph allocate UiIds starting at 100. Not sure if this is a good idea..
     let ui_id_offset = 100;
     let mut tools = ToolPane::new(ui_id_offset, &graph);
+    tools.on_save(|graph| println!("{:?}", graph));
 
     let event_iter = window.events().ups(180).max_fps(60);
     let mut gl = GlGraphics::new(opengl);

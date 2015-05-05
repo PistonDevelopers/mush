@@ -152,7 +152,17 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
 
     /// Export the UiGraph structure to the original source graph format
     pub fn as_source_graph(&self) -> Graph<N, E> {
-        // TODO
-        Graph::new()
+
+        let mut source_graph = Graph::new();
+
+        for node in self.graph.raw_nodes().iter() {
+            source_graph.add_node(node.weight.source_node.clone());
+        }
+
+        for edge in self.graph.raw_edges().iter() {
+            source_graph.add_edge(edge.source(), edge.target(), edge.weight.source_edge.clone());
+        }
+
+        source_graph
     }
 }
