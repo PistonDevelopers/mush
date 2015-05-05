@@ -1,15 +1,13 @@
 extern crate mush;
 
-use mush::{NodeContainer, ToolPane, EditableNode, EditableEdge};
-
+use mush::{ToolPane, EditableNode, EditableEdge};
 
 extern crate conrod;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate piston;
 
-use conrod::{Background, Button, Toggle , Colorable, Labelable, Sizeable, Theme, Ui,
-             Positionable, TextBox, CustomWidget, Position};
+use conrod::{Background, Colorable, Theme, Ui, Positionable};
 use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -20,20 +18,16 @@ use std::path::Path;
 extern crate petgraph;
 use self::petgraph::{Graph};
 
-//fn resized(w:u32,h:u32) {width=w; height=h;}
-
-#[derive(Debug)]
-struct NodeState {
+#[derive(Debug, Clone)]
+struct DemoNode {
+    name: String,
     position: [f64; 2]
 }
 
-#[derive(Debug)]
-struct Edge;
-impl EditableEdge for Edge {
-    fn default() -> Self { Edge }
-}
-
-impl EditableNode for NodeState {
+impl EditableNode for DemoNode {
+    fn get_label(&self) -> &str {
+        &self.name
+    }
     fn get_position(&self) -> [f64; 2] {
         self.position
     }
@@ -43,20 +37,28 @@ impl EditableNode for NodeState {
     }
 
     fn default() -> Self {
-        NodeState { position: [0.0, 0.0] }
+        DemoNode {
+            name: "New Node".to_string(),
+            position: [0.0, 0.0]
+        }
     }
 }
 
+#[derive(Debug, Clone)]
+struct DemoEdge;
+
+impl EditableEdge for DemoEdge {
+    fn default() -> Self { DemoEdge }
+}
+
 fn main () {
-    let mut width = 1024;
-    let mut height = 768;
 
     let opengl = OpenGL::_3_2;
-    let mut window = GlutinWindow::new(
+    let window = GlutinWindow::new(
         opengl,
         WindowSettings::new(
             "mush -> graph library gui".to_string(),
-            Size { width: width, height: height }
+            Size { width: 1024, height: 768 }
             )
             .exit_on_esc(true)
             .samples(4)
@@ -65,13 +67,15 @@ fn main () {
     // Initialize the graph structure
     let mut graph = Graph::new();
 
-    let a = graph.add_node(NodeState { position: [100.0, 100.0] });
-    let b = graph.add_node(NodeState { position: [100.0, 0.0] });
-    let c = graph.add_node(NodeState { position: [0.0, 100.0] });
-    graph.add_edge(a,b, Edge::default());
-    graph.add_edge(b,c, Edge::default());
+    let a = graph.add_node(DemoNode { position: [100.0, 100.0], name: "Stuff".to_string() });
+    let b = graph.add_node(DemoNode { position: [100.0, 0.0], name: "Things".to_string() });
+    let c = graph.add_node(DemoNode { position: [0.0, 100.0], name: "Whatever".to_string() });
+    graph.add_edge(a,b, DemoEdge::default());
+    graph.add_edge(b,c, DemoEdge::default());
 
-    let mut tools = ToolPane::new(4, &graph); //nodecontainer has 4 widgets
+    // Let ui graph allocate UiIds starting at 100. Not sure if this is a good idea..
+    let ui_id_offset = 100;
+    let mut tools = ToolPane::new(ui_id_offset, &graph);
 
     let event_iter = window.events().ups(180).max_fps(60);
     let mut gl = GlGraphics::new(opengl);
@@ -79,7 +83,6 @@ fn main () {
     let theme = Theme::default();
     let glyph_cache = GlyphCache::new(&font_path).unwrap();
     let mut ui = &mut Ui::new(glyph_cache, theme);
-
 
     for event in event_iter {
         ui.handle_event(&event);
@@ -90,13 +93,7 @@ fn main () {
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-                tools.draw(&mut ui, &mut graph);
-
-                /* mush::node::Node::new()
-                .label("Thingy")
-                .xy(100.0, 100.0)
-                .dimensions(100.0, 40.0)
-                .set(2, ui);*/
+                tools.build_ui(&mut ui);
 
                 // Draw our Ui!
                 ui.draw(gl);
@@ -104,6 +101,5 @@ fn main () {
             });
         }
     }
-
 
 }
