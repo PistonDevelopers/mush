@@ -1,6 +1,6 @@
 use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable};
 use petgraph::Graph;
-use petgraph::graph::NodeIndex;
+use petgraph::graph::{NodeIndex, EdgeIndex};
 use opengl_graphics::glyph_cache::GlyphCache;
 
 pub trait EditableNode: Clone {
@@ -25,7 +25,7 @@ pub struct UiNode<N: EditableNode> {
 }
 
 impl<N: EditableNode> UiNode<N> {
-    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
+    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>, node_index: NodeIndex, ui_graph_state: &mut ConnectionState) {
 
         if self.destroy { return }
 
@@ -64,6 +64,23 @@ impl<N: EditableNode> UiNode<N> {
             Label::new(self.source_node.get_label())
                 .down_from(ui_id_start, 5.0)
                 .set(ui_id_start + 3, ui);
+
+            Button::new()
+                .down_from(ui_id_start + 3, 5.0)
+                .label("+")
+                .dimensions(20.0, 20.0)
+                .react(|| {
+                    match ui_graph_state {
+                        &mut ConnectionState::Connecting(source_node) => {
+                            *ui_graph_state = ConnectionState::ConnectionAdded(source_node, node_index);
+                        },
+                        &mut ConnectionState::Default => {
+                            *ui_graph_state = ConnectionState::Connecting(node_index);
+                        },
+                        _ => {}
+                    }
+                })
+                .set(ui_id_start + 4, ui);
         }
     }
 }
@@ -71,11 +88,32 @@ impl<N: EditableNode> UiNode<N> {
 pub struct UiEdge<E> {
     source_edge: E,
     ui_id: UiId,
+    destroy: bool,
+}
+
+impl<E: EditableEdge> UiEdge<E> {
+    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>, position: [f64; 2]) {
+        // TEMP - put a 'delete' button between the nodes until we can get a proper Edge/Connection widget
+        let ui_id_start = self.ui_id;
+        Button::new()
+            .xy(position[0], position[1])
+            .label("X")
+            .dimensions(50.0, 20.0)
+            .react(|| self.destroy = true)
+            .set(ui_id_start, ui);
+    }
+}
+
+pub enum ConnectionState {
+    Default,
+    Connecting(NodeIndex),
+    ConnectionAdded(NodeIndex, NodeIndex)
 }
 
 pub struct UiGraph<N: EditableNode, E: EditableEdge> {
     graph: Graph<UiNode<N>, UiEdge<E>>,
     ui_id_range: [UiId; 2],
+    connection_state: ConnectionState,
 }
 
 impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
@@ -97,7 +135,7 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
                 collapse: false,
                 destroy: false,
             });
-            ui_id += 4;
+            ui_id += 5;
         }
 
         // Node indices should be consistent between source graph and ui graph (as long as we don't remove nodes)
@@ -107,13 +145,15 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
             graph.add_edge(edge.source(), edge.target(), UiEdge {
                 source_edge: edge.weight.clone(),
                 ui_id: ui_id,
+                destroy: false,
             });
             ui_id += 1;
         }
 
         UiGraph {
             graph: graph,
-            ui_id_range: [start_index, ui_id]
+            ui_id_range: [start_index, ui_id],
+            connection_state: ConnectionState::Default,
         }
     }
 
@@ -127,24 +167,75 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
             collapse: false,
             destroy: false,
         });
-        self.ui_id_range = [ui_id_range[0], ui_id_range[1] + 4];
+        self.ui_id_range = [ui_id_range[0], ui_id_range[1] + 5];
+    }
+
+    pub fn add_edge(&mut self, source: NodeIndex, target: NodeIndex) {
+        let ui_id_range = self.ui_id_range;
+        self.graph.add_edge(source, target, UiEdge {
+            source_edge: E::default(),
+            ui_id: ui_id_range[1],
+            destroy: false,
+        });
+        self.ui_id_range = [ui_id_range[0], ui_id_range[1] + 1];
     }
 
     pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
-        self.cleanup();
+        self.update();
         let node_count = self.graph.node_count();
+        let connection_state = &mut self.connection_state;
+
         for i in (0..node_count) {
             let index = NodeIndex::new(i);
-            self.graph.node_weight_mut(index).map(|node| node.build_ui(ui));
+            self.graph.node_weight_mut(index).map(|node| node.build_ui(ui, index, connection_state));
+        }
+
+        // This really blows. Fighting with borrow checker...
+        let mut midpoints = Vec::new();
+        for edge in self.graph.raw_edges().iter() {
+            let source = self.graph.node_weight(edge.source()).unwrap();
+            let target = self.graph.node_weight(edge.target()).unwrap();
+            let position_1 = source.source_node.get_position();
+            let position_2 = target.source_node.get_position();
+            let position = [(position_1[0] + position_2[0]) / 2.0,
+                            (position_1[1] + position_2[1]) / 2.0];
+            midpoints.push(position);
+        }
+
+        let edge_count = self.graph.edge_count();
+        for i in (0..edge_count) {
+            let index = EdgeIndex::new(i);
+            self.graph.edge_weight_mut(index).map(|edge| edge.build_ui(ui, midpoints[i]));
         }
     }
 
+    /// Add edge if connection is pending
     /// Remove all nodes and edges marked for destruction
-    pub fn cleanup(&mut self) {
+    pub fn update(&mut self) {
+
+        if let ConnectionState::ConnectionAdded(source, target) = self.connection_state {
+            self.add_edge(source, target);
+            self.connection_state = ConnectionState::Default;
+        }
+
+        // This is really inefficient, try to find a better way :/
+        // Remove destroyed nodes
         loop {
             if let Some((i, _)) = self.graph.raw_nodes().iter().enumerate().find(|&(_i, ref node)| node.weight.destroy) {
                 let index = NodeIndex::new(i);
                 self.graph.remove_node(index);
+
+                // NodeIndices are not stable after removing nodes
+                self.connection_state = ConnectionState::Default;
+            }
+            break;
+        }
+
+        // Remove destroyed edges
+        loop {
+            if let Some((i, _)) = self.graph.raw_edges().iter().enumerate().find(|&(_i, ref edge)| edge.weight.destroy) {
+                let index = EdgeIndex::new(i);
+                self.graph.remove_edge(index);
             }
             break;
         }
