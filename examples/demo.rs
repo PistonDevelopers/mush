@@ -20,10 +20,14 @@ use self::petgraph::{Graph};
 
 #[derive(Debug, Clone)]
 struct DemoNode {
+    name: String,
     position: [f64; 2]
 }
 
 impl EditableNode for DemoNode {
+    fn get_label(&self) -> &str {
+        &self.name
+    }
     fn get_position(&self) -> [f64; 2] {
         self.position
     }
@@ -33,7 +37,10 @@ impl EditableNode for DemoNode {
     }
 
     fn default() -> Self {
-        DemoNode { position: [0.0, 0.0] }
+        DemoNode {
+            name: "New Node".to_string(),
+            position: [0.0, 0.0]
+        }
     }
 }
 
@@ -60,9 +67,9 @@ fn main () {
     // Initialize the graph structure
     let mut graph = Graph::new();
 
-    let a = graph.add_node(DemoNode { position: [100.0, 100.0] });
-    let b = graph.add_node(DemoNode { position: [100.0, 0.0] });
-    let c = graph.add_node(DemoNode { position: [0.0, 100.0] });
+    let a = graph.add_node(DemoNode { position: [100.0, 100.0], name: "Stuff".to_string() });
+    let b = graph.add_node(DemoNode { position: [100.0, 0.0], name: "Things".to_string() });
+    let c = graph.add_node(DemoNode { position: [0.0, 100.0], name: "Whatever".to_string() });
     graph.add_edge(a,b, DemoEdge::default());
     graph.add_edge(b,c, DemoEdge::default());
 

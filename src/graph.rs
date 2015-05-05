@@ -4,6 +4,7 @@ use petgraph::graph::NodeIndex;
 use opengl_graphics::glyph_cache::GlyphCache;
 
 pub trait EditableNode: Clone {
+    fn get_label(&self) -> &str;
     fn get_position(&self) -> [f64; 2];
     fn set_position(&mut self, [f64; 2]);
     fn default() -> Self;
@@ -60,8 +61,8 @@ impl<N: EditableNode> UiNode<N> {
             .set(ui_id_start + 2, ui);
 
         if !self.collapse {
-            Label::new("STUFF")
-                .down_from(ui_id_start + 2, 5.0)
+            Label::new(self.source_node.get_label())
+                .down_from(ui_id_start, 5.0)
                 .set(ui_id_start + 3, ui);
         }
     }
