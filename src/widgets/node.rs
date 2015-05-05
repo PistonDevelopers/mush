@@ -94,7 +94,7 @@ impl<'a> CustomWidget for Node<'a> {
     type State = NodeState;
 
     fn update<C>(self, state: NodeState, ui_id: UiId, ui: &mut Ui<C, Node<'a>>) -> WidgetUpdate<NodeState>
-        //where C: CharacterCache //I had to comment this out, not sure why it wouldn't compile for me
+        where C: CharacterCache
     {
 
         use elmesque::form::{collage, rect, text};

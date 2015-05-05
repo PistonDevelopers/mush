@@ -1,15 +1,13 @@
 extern crate mush;
 
-use mush::{NodeContainer, ToolPane, EditableNode, EditableEdge};
-
+use mush::{ToolPane, EditableNode, EditableEdge};
 
 extern crate conrod;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate piston;
 
-use conrod::{Background, Button, Toggle , Colorable, Labelable, Sizeable, Theme, Ui,
-             Positionable, TextBox, CustomWidget, Position};
+use conrod::{Background, Colorable, Theme, Ui, Positionable};
 use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -20,17 +18,9 @@ use std::path::Path;
 extern crate petgraph;
 use self::petgraph::{Graph};
 
-//fn resized(w:u32,h:u32) {width=w; height=h;}
-
 #[derive(Debug, Clone)]
 struct DemoNode {
     position: [f64; 2]
-}
-
-#[derive(Debug, Clone)]
-struct DemoEdge;
-impl EditableEdge for DemoEdge {
-    fn default() -> Self { DemoEdge }
 }
 
 impl EditableNode for DemoNode {
@@ -47,16 +37,21 @@ impl EditableNode for DemoNode {
     }
 }
 
+#[derive(Debug, Clone)]
+struct DemoEdge;
+
+impl EditableEdge for DemoEdge {
+    fn default() -> Self { DemoEdge }
+}
+
 fn main () {
-    let mut width = 1024;
-    let mut height = 768;
 
     let opengl = OpenGL::_3_2;
-    let mut window = GlutinWindow::new(
+    let window = GlutinWindow::new(
         opengl,
         WindowSettings::new(
             "mush -> graph library gui".to_string(),
-            Size { width: width, height: height }
+            Size { width: 1024, height: 768 }
             )
             .exit_on_esc(true)
             .samples(4)
@@ -82,7 +77,6 @@ fn main () {
     let glyph_cache = GlyphCache::new(&font_path).unwrap();
     let mut ui = &mut Ui::new(glyph_cache, theme);
 
-
     for event in event_iter {
         ui.handle_event(&event);
 
@@ -94,18 +88,11 @@ fn main () {
 
                 tools.draw(&mut ui);
 
-                /* mush::node::Node::new()
-                .label("Thingy")
-                .xy(100.0, 100.0)
-                .dimensions(100.0, 40.0)
-                .set(2, ui);*/
-
                 // Draw our Ui!
                 ui.draw(gl);
 
             });
         }
     }
-
 
 }

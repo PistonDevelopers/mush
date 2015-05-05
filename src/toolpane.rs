@@ -1,9 +1,10 @@
 extern crate petgraph;
 
-use graph::{UiGraph, EditableNode, EditableEdge};
+use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable};
 use opengl_graphics::glyph_cache::GlyphCache;
-use conrod::{Ui, UiId, Label,Button,Positionable,Sizeable,Labelable};
 use petgraph::Graph;
+
+use graph::{UiGraph, EditableNode, EditableEdge};
 
 pub struct ToolPane<N: EditableNode, E: EditableEdge> {
     ui_graph: UiGraph<N, E>,
