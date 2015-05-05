@@ -39,7 +39,7 @@ impl<N: EditableNode> UiNode<N> {
         Button::new() //this should be a press-action, not a release; fixme with custom widget! also conrod should have a drag controller widget, which is basically what we're building
             .xy(position[0], position[1])
             .dimensions(100.0,20.0)
-            .react(|| { self.drag = !self.drag; })
+            .react(|| self.drag = !self.drag)
             .set(ui_id_start, ui);
 
         let mut cl = "<";
@@ -49,18 +49,14 @@ impl<N: EditableNode> UiNode<N> {
             .right(5.0)
             .label(cl)
             .dimensions(20.0,20.0)
-            .react(|| { self.collapse = !self.collapse; })
+            .react(|| self.collapse = !self.collapse)
             .set(ui_id_start + 1, ui);
 
         Button::new()
             .right(5.0)
             .label("x")
             .dimensions(20.0,20.0)
-            .react(|| {
-                // TODO how to handle nicely...
-                //graph.remove_node(self.nidx);
-                self.destroy=true;
-            })
+            .react(|| self.destroy = true)
             .set(ui_id_start + 2, ui);
 
         if !self.collapse {
@@ -134,10 +130,22 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
     }
 
     pub fn draw(&mut self, ui: &mut Ui<GlyphCache>) {
+        self.cleanup();
         let node_count = self.graph.node_count();
         for i in (0..node_count) {
             let index = NodeIndex::new(i);
             self.graph.node_weight_mut(index).map(|node| node.draw(ui));
+        }
+    }
+
+    /// Remove all nodes and edges marked for destruction
+    pub fn cleanup(&mut self) {
+        loop {
+            if let Some((i, _)) = self.graph.raw_nodes().iter().enumerate().find(|&(_i, ref node)| node.weight.destroy) {
+                let index = NodeIndex::new(i);
+                self.graph.remove_node(index);
+            }
+            break;
         }
     }
 
