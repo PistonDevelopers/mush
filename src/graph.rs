@@ -24,7 +24,7 @@ pub struct UiNode<N: EditableNode> {
 }
 
 impl<N: EditableNode> UiNode<N> {
-    pub fn draw(&mut self, ui: &mut Ui<GlyphCache>) {
+    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
 
         if self.destroy { return }
 
@@ -129,12 +129,12 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
         self.ui_id_range = [ui_id_range[0], ui_id_range[1] + 4];
     }
 
-    pub fn draw(&mut self, ui: &mut Ui<GlyphCache>) {
+    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
         self.cleanup();
         let node_count = self.graph.node_count();
         for i in (0..node_count) {
             let index = NodeIndex::new(i);
-            self.graph.node_weight_mut(index).map(|node| node.draw(ui));
+            self.graph.node_weight_mut(index).map(|node| node.build_ui(ui));
         }
     }
 

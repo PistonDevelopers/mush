@@ -86,7 +86,7 @@ fn main () {
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-                tools.draw(&mut ui);
+                tools.build_ui(&mut ui);
 
                 // Draw our Ui!
                 ui.draw(gl);
