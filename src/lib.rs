@@ -6,8 +6,8 @@ extern crate petgraph;
 pub use toolpane::{ToolPane};
 pub use graph::{graphs};
 
+pub mod widgets;
 pub mod toolpane;
-pub mod node;
 pub mod graph;
 
 pub trait EditableNode {

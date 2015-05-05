@@ -4,6 +4,10 @@ version = "0.1.0"
 authors = ["viperscape <chrisfgill@gmail.com>"]
 license = "MIT"
 
+[[bin]]
+name = "demo"
+path = "examples/demo.rs"
+
 [dependencies.petgraph]
 git = "https://github.com/bluss/petulant-avenger-graphlibrary"
 
