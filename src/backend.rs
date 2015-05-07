@@ -1,7 +1,7 @@
 /// mush graph backend and abstraction to swap out with custom backend
 
 use uuid::Uuid;
-use std::collections::HashMap;
+use std::collections::{HashMap,HashSet};
 
 // graph functions
 /*pub trait GraphBackend<I:PartialEq> {
@@ -19,6 +19,7 @@ use std::collections::HashMap;
   //  fn connections(&self, from: I, to: I) -> Vec<I>;
 //}
 
+#[derive(Debug)]
 pub struct GraphNode {
     uuid: Uuid,
     edges: HashMap<Uuid,Option<f64>>, //to,weight
@@ -34,6 +35,8 @@ impl GraphNode {
         GraphNode { uuid: uuid,
                     edges: HashMap::new() }
     }
+    /// direct the node towards another node
+    // todo: rename me! sounds too similar to unidirectional
     fn direct (&mut self, to:&Uuid, weight: Option<f64>) -> bool {
         self.edges.insert(*to,weight).is_some()
     }
@@ -56,6 +59,9 @@ impl Graph {
 
     fn get_mut(&mut self, uuid: &Uuid) -> Option<&mut GraphNode> {
         self.nodes.get_mut(uuid)
+    }
+    fn get(&mut self, uuid: &Uuid) -> Option<&GraphNode> {
+        self.nodes.get(uuid)
     }
 
     fn add (&mut self) -> Uuid { //todo: maybe_edges fn arg
@@ -83,12 +89,54 @@ impl Graph {
 
     // search functions
     // todo: consider weights between nodes, breadth/depth first, cycle-detection
-    fn get_path(&self, s: GraphSearch) -> Vec<&Uuid> {
-        vec!()
+    fn get_path(&mut self, s: GraphSearch) -> Option<Vec<Uuid>> {
+        let mut visited: HashSet<Uuid> = HashSet::new();
+        let mut result = vec!(); //: HashSet<Uuid> = HashSet::new();
+        
+        match s {
+            GraphSearch::Depth(from,to) => {
+                let mut stack = vec!();
+
+                stack.push(from);
+                visited.insert(from);
+                result.push(from);
+
+
+                let mut cursor = Some(from);
+
+                while cursor.is_some() {
+                    if let Some(ref node) = self.get(&cursor.unwrap()) {
+                        //get first unvisited node
+                        let not_visited = node.edges.iter().find(|&(&n,v)| !visited.contains(&n));
+
+                        if let Some((&n,w)) = not_visited {
+                            stack.push(n);
+                            visited.insert(n);
+                            result.push(n);
+
+                            if n == to { break; }
+
+                            cursor = Some(n);
+                        }
+                        else { cursor = stack.pop(); }
+                    }
+                    else { cursor = stack.pop(); }
+                }
+
+                if result.contains(&to) {
+                    Some(result)
+                }
+                else { None }
+            },
+            _ => { None },
+        }
+
+        
+        
     }
 
-    fn get_cycle(&self, s: GraphSearch) -> Vec<&Uuid> {
-        vec!()
+    fn get_cycle(&self, s: GraphSearch) -> Option<Vec<&Uuid>> {
+        None
     }
 
     fn get_next(&self, s:GraphSearch) {
@@ -116,19 +164,28 @@ pub enum GraphSearch {
 #[cfg(test)]
 mod tests {
     extern crate test;
-    use ::backend::{Graph,GraphNode};
+    use ::backend::{Graph,GraphNode,GraphSearch};
     
     #[test]
     fn test_basic() {
         let mut graph = Graph::new();
-        let nodes = &[graph.add();5];
+        let mut nodes = vec!();
+        for i in 0..5 {
+            nodes.push(graph.add());
+        }
+        
         graph.get_mut(&nodes[0]).unwrap().direct(&nodes[1],None); //note there is no verification that b exists when doing this manually
 
-        graph.direct(&nodes[1],&nodes[4]);
+        graph.direct(&nodes[3],&nodes[0]);
+        graph.direct(&nodes[4],&nodes[3]);
         graph.remove(&nodes[2]);
         assert!(!graph.direct(&nodes[2],&nodes[3]));
 
-        
+        let r = graph.get_path(GraphSearch::Depth(nodes[0],nodes[4]));
+        assert!(!r.is_some());
+
+        let r = graph.get_path(GraphSearch::Depth(nodes[4],nodes[0]));
+        assert_eq!(r.unwrap().len(), 3);
     }
         
 }
