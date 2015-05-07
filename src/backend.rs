@@ -1,7 +1,7 @@
 /// mush graph backend and abstraction to swap out with custom backend
 
 use uuid::Uuid;
-use std::collections::{HashMap,HashSet};
+use std::collections::{HashMap,HashSet,VecDeque};
 
 // graph functions
 /*pub trait GraphBackend<I:PartialEq> {
@@ -91,7 +91,7 @@ impl Graph {
     // todo: consider weights between nodes, breadth/depth first, cycle-detection
     fn get_path(&mut self, s: GraphSearch) -> Option<Vec<Uuid>> {
         let mut visited: HashSet<Uuid> = HashSet::new();
-        let mut result = vec!(); //: HashSet<Uuid> = HashSet::new();
+        let mut result = vec!();
         
         match s {
             GraphSearch::Depth(from,to) => {
@@ -128,7 +128,48 @@ impl Graph {
                 }
                 else { None }
             },
-            _ => { None },
+            GraphSearch::Breadth(from,to) => { // breadth first search, uses a queue
+                let mut queue = VecDeque::new();
+
+                queue.push_back(from);
+                visited.insert(from);
+                result.push(from);
+
+
+                let mut cursor = Some(from);
+
+                while cursor.is_some() {
+                    if let Some(ref node) = self.get(&cursor.unwrap()) {
+                        //get first unvisited node
+                        let not_visited: Vec<Option<(Uuid,Option<f64>)>> = node.edges.iter().map(|(&n,&v)| {
+                            if !visited.contains(&n) {
+                                Some((n,v))
+                            }
+                            else { None }
+                        }).collect();
+
+                        for maybe_node in not_visited {
+                            if let Some((n,w)) = maybe_node {
+                                queue.push_back(n);
+                                visited.insert(n);
+                                result.push(n);
+
+                                if n == to { break; }
+
+                                cursor = Some(n);
+                            }
+                        }
+
+                        cursor = queue.pop_front();
+                    }
+                    else { cursor = queue.pop_front(); }
+                }
+
+                if result.contains(&to) {
+                    Some(result)
+                }
+                else { None }
+            },
         }
 
         
@@ -186,6 +227,9 @@ mod tests {
 
         let r = graph.get_path(GraphSearch::Depth(nodes[4],nodes[0]));
         assert_eq!(r.unwrap().len(), 3);
+
+        let r = graph.get_path(GraphSearch::Breadth(nodes[4],nodes[0]));
+        assert!(r.is_some());
     }
         
 }
