@@ -209,9 +209,62 @@ impl Graph {
         
     }
 
-    pub fn get_cycle(&self, s: GraphSearch) -> Option<Vec<&Uuid>> {
+    pub fn get_cycle(&mut self, s: GraphSearch) -> Option<Vec<Uuid>> {
         match s {
-            GraphSearch::Depth(from,to) => { None }, // todo: use dfs
+            GraphSearch::Depth(from,to) => {
+                //const NEW: u8 = 0;
+                const SEARCH: u8 = 1; // currently searching in this node
+                const VISIT: u8 = 2; // has visited this node
+                
+                let mut status: HashMap<Uuid,u8> = HashMap::new();
+                let mut result = vec!();
+                let mut stack = vec!();
+
+                stack.push(from);
+                //status.insert(from,SEARCH);
+                result.push(from);
+
+                let mut cursor = Some(from);
+
+                while cursor.is_some() {
+                    status.insert(cursor.unwrap(),SEARCH);
+                    println!("{:?}",status);
+                    if let Some(ref node) = self.get(&cursor.unwrap()) {
+                        //get first unvisited node
+                        let not_visited = node.edges.iter().find(|&(&n,v)| !status.contains_key(&n));
+
+                        let has_searching = node.edges.iter().find(|&(&n,v)| {
+                            if let Some(_v) = status.get(&n) {
+                                if *_v == SEARCH { true } //cycles found
+                                else { false }
+                            }
+                            else { false }
+                        });
+
+                        if let Some((&n,w)) = has_searching {
+                            result.push(n);
+                            return Some(result);
+                        }
+                        
+                        if let Some((&n,w)) = not_visited {
+                            stack.push(n);
+                            status.insert(n,VISIT);
+                            result.push(n);
+
+                            if let Some(to_node) = to {
+                                if n == to_node { break; }
+                            }
+
+                            cursor = Some(n);
+                        }
+                        else { cursor = stack.pop(); }
+                    }
+                    else { cursor = stack.pop(); }
+                }
+                
+
+                return None
+            },
             _ => None,
         }
     }
@@ -296,6 +349,19 @@ mod tests {
         assert_eq!(r.unwrap().len(), 3);
 
         let r = graph.get_path(GraphSearch::Breadth(nodes[4],Some(nodes[0])));
+        assert!(r.is_some());
+
+        let r = graph.get_cycle(GraphSearch::Depth(nodes[4],Some(nodes[0])));
+        assert!(!r.is_some());
+
+
+        //find cycles
+        let r = graph.get_cycle(GraphSearch::Depth(nodes[4],Some(nodes[0])));
+        assert!(!r.is_some());
+        let n2 = graph.add();
+        graph.direct(&n2,&nodes[3]);
+        graph.direct(&nodes[0],&n2);
+        let r = graph.get_cycle(GraphSearch::Depth(nodes[4],None));
         assert!(r.is_some());
 
     }
