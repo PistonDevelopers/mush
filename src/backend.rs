@@ -228,7 +228,7 @@ impl Graph {
 
                 while cursor.is_some() {
                     status.insert(cursor.unwrap(),SEARCH);
-                    println!("{:?}",status);
+
                     if let Some(ref node) = self.get(&cursor.unwrap()) {
                         //get first unvisited node
                         let not_visited = node.edges.iter().find(|&(&n,v)| !status.contains_key(&n));
