@@ -64,7 +64,7 @@ impl Graph {
     fn get_mut(&mut self, uuid: &Uuid) -> Option<&mut GraphNode> {
         self.nodes.get_mut(uuid)
     }
-    fn get(&mut self, uuid: &Uuid) -> Option<&GraphNode> {
+    fn get(&self, uuid: &Uuid) -> Option<&GraphNode> {
         self.nodes.get(uuid)
     }
 
@@ -111,7 +111,7 @@ impl Graph {
 
     // search functions
     // todo: consider weights between nodes to direct search, cycle-detection
-    pub fn get_path(&mut self, s: GraphSearch) -> Option<Vec<Uuid>> {
+    pub fn get_path(&self, s: GraphSearch) -> Option<Vec<Uuid>> {
         let mut visited: HashSet<Uuid> = HashSet::new();
         let mut result = vec!();
         
@@ -123,14 +123,13 @@ impl Graph {
                 visited.insert(from);
                 result.push(from);
 
-
                 let mut cursor = Some(from);
 
                 while cursor.is_some() {
                     if let Some(ref node) = self.get(&cursor.unwrap()) {
                         //get first unvisited node
                         let not_visited = node.edges.iter().find(|&(&n,v)| !visited.contains(&n));
-
+                        
                         if let Some((&n,w)) = not_visited {
                             stack.push(n);
                             visited.insert(n);
@@ -209,71 +208,49 @@ impl Graph {
         
     }
 
-    pub fn get_cycle(&mut self, s: GraphSearch) -> Option<Vec<Uuid>> {
-        match s {
-            GraphSearch::Depth(from,to) => {
-                //const NEW: u8 = 0;
-                const SEARCH: u8 = 1; // currently searching in this node
-                const VISIT: u8 = 2; // has visited this node
-                
-                let mut status: HashMap<Uuid,u8> = HashMap::new();
-                let mut result = vec!();
-                let mut stack = vec!();
+    //this is virtually the same as get_path dfs, should abstract dfs somehow to use it for this
+    pub fn get_cycle(&self, from: Uuid, to: Option<Uuid>) -> Option<Uuid> { //Option<Vec<Uuid>> {
+        let mut stack = vec!();
+        let mut visited: HashSet<Uuid> = HashSet::new();
+        
+        stack.push(from);
+        visited.insert(from);
 
-                stack.push(from);
-                //status.insert(from,SEARCH);
-                result.push(from);
+        let mut cursor = Some(from);
 
-                let mut cursor = Some(from);
+        while cursor.is_some() {
+            if let Some(ref node) = self.get(&cursor.unwrap()) {
+                //get first unvisited node
+                let not_visited = node.edges.iter().find(|&(&n,v)| !visited.contains(&n));
 
-                while cursor.is_some() {
-                    status.insert(cursor.unwrap(),SEARCH);
-
-                    if let Some(ref node) = self.get(&cursor.unwrap()) {
-                        //get first unvisited node
-                        let not_visited = node.edges.iter().find(|&(&n,v)| !status.contains_key(&n));
-
-                        let has_searching = node.edges.iter().find(|&(&n,v)| {
-                            if let Some(_v) = status.get(&n) {
-                                if *_v == SEARCH { true } //cycles found
-                                else { false }
-                            }
-                            else { false }
-                        });
-
-                        if let Some((&n,w)) = has_searching {
-                            result.push(n);
-                            return Some(result);
-                        }
-                        
-                        if let Some((&n,w)) = not_visited {
-                            stack.push(n);
-                            status.insert(n,VISIT);
-                            result.push(n);
-
-                            if let Some(to_node) = to {
-                                if n == to_node { break; }
-                            }
-
-                            cursor = Some(n);
-                        }
-                        else { cursor = stack.pop(); }
-                    }
-                    else { cursor = stack.pop(); }
+                if let Some(cycle) = node.edges.iter().find(|&(&n,v)| stack.contains(&n)) {
+                    return Some(*cycle.0);
+                    // should consider returning stack
                 }
                 
+                if let Some((&n,w)) = not_visited {
+                    stack.push(n);
+                    visited.insert(n);
 
-                return None
-            },
-            _ => None,
+                    if let Some(to_node) = to {
+                        if n == to_node { break; }
+                    }
+
+                    cursor = Some(n);
+                }
+                else { cursor = stack.pop(); }
+            }
+            else { cursor = stack.pop(); }
         }
+
+        return None
     }
 
     /// get immediate next node from list of connected nodes for the current node
-    pub fn get_next(&self, from: &Uuid) -> Option<&Uuid> {
+    pub fn get_next(&self, from: &Uuid) -> Option<Uuid> {
         if let Some(n) = self.nodes.get(from) {
             if let Some(next_id) = n.edges.iter().next() {
-                return Some(next_id.0) // grab uuid key
+                return Some(*next_id.0) // grab uuid key
             }
         }
 
@@ -335,35 +312,28 @@ mod tests {
             nodes.push(graph.add());
         }
         
-        graph.get_mut(&nodes[0]).unwrap().direct(&nodes[1],None); //note there is no verification that node[1] exists when doing this manually
+        graph.direct(&nodes[0],&nodes[1]);
 
         graph.direct(&nodes[3],&nodes[0]);
         graph.direct(&nodes[4],&nodes[3]);
-        let n2 = graph.remove(&nodes[2]);
-        assert!(!graph.direct(&nodes[2],&nodes[3]));
+        
 
         let r = graph.get_path(GraphSearch::Depth(nodes[0],Some(nodes[4])));
         assert!(!r.is_some());
 
         let r = graph.get_path(GraphSearch::Depth(nodes[4],Some(nodes[0])));
-        assert_eq!(r.unwrap().len(), 3);
-
-        let r = graph.get_path(GraphSearch::Breadth(nodes[4],Some(nodes[0])));
         assert!(r.is_some());
 
-        let r = graph.get_cycle(GraphSearch::Depth(nodes[4],Some(nodes[0])));
-        assert!(!r.is_some());
 
-
-        //find cycles
-        let r = graph.get_cycle(GraphSearch::Depth(nodes[4],Some(nodes[0])));
-        assert!(!r.is_some());
+        {let r = graph.get_cycle(nodes[4],Some(nodes[1]));
+         assert!(!r.is_some());}
+        
         let n2 = graph.add();
         graph.direct(&n2,&nodes[3]);
         graph.direct(&nodes[0],&n2);
-        let r = graph.get_cycle(GraphSearch::Depth(nodes[4],None));
+        
+        let r = graph.get_cycle(nodes[4],Some(nodes[1]));
         assert!(r.is_some());
-
     }
         
 }
