@@ -11,7 +11,7 @@ use std::collections::{HashMap,HashSet,VecDeque};
 struct GraphEdge<K> {
     to: Uuid,
     maybe_weight: Option<f64>,
-    maybe_custom: Option<K>,
+    maybe_custom: Option<K>, // this might 
 }
 impl<K> GraphEdge<K> {
     // this should be private, this should be called by a graph method
@@ -62,8 +62,14 @@ impl GraphNode {
     fn direct (&mut self, to:&Uuid, weight: Option<f64>) {
         self.edges_to.insert(*to,weight);
     }
+    fn direct_from (&mut self, to:&Uuid, weight: Option<f64>) {
+        self.edges_from.insert(*to,weight);
+    }
     fn undirect (&mut self, to:&Uuid) {
         self.edges_to.remove(to);
+    }
+    fn undirect_from (&mut self, to:&Uuid) {
+        self.edges_from.remove(to);
     }
 }
 
@@ -106,14 +112,18 @@ impl Graph {
     }
 
     pub fn direct(&mut self, from: &Uuid, to: &Uuid) -> bool {
-        let mut r = true;
+        let mut r = false;
 
         if !self.get_node(to).is_some() { return false } // todo: expand on this, and impl for undirect?
         
         if let Some(f) = self.nodes.get_mut(from) {
             f.direct(to,None);
+            r = true;
         }
-        else { r = false; }
+
+         
+        if r && self.is_tracking { let t = self.nodes.get_mut(to).unwrap();
+                                   t.direct_from(from,None); }
 
         if self.is_directed { return r }
         else if r {
@@ -123,15 +133,21 @@ impl Graph {
             else { r = false; }
         }
 
-        return r
+        r
     }
     pub fn undirect(&mut self, from: &Uuid, to: &Uuid) -> bool {
-        let mut r = true;
+        let mut r = false;
+
+        if !self.get_node(to).is_some() { return false }
+        
         if let Some(f) = self.nodes.get_mut(from) {
             f.undirect(to);
+            r = true;
         }
-        else { r = false; }
 
+        if r && self.is_tracking {  let t = self.nodes.get_mut(to).unwrap();
+                                    t.undirect_from(from); }
+        
         if self.is_directed { return r }
         else if r {
             if let Some(t) = self.nodes.get_mut(to) {
@@ -140,11 +156,11 @@ impl Graph {
             else { r = false; }
         }
 
-        return r
+        r
     }
 
     // search functions
-    // todo: consider weights between nodes to direct search, cycle-detection
+    // todo: consider weights between nodes to direct search
     pub fn get_path(&self, s: GraphSearch) -> Option<Vec<Uuid>> {
         let mut visited: HashSet<Uuid> = HashSet::new();
         let mut result = vec!();
@@ -262,7 +278,9 @@ impl Graph {
                 
                 if let Some((&n,_)) = not_visited {
                     if !stack.contains(&n) {
-                        stack.push(n); //add node to check
+                        if !self.is_tracking || self.nodes.contains_key(&n) {
+                            stack.push(n); //add node to check
+                        }
                     }
                 }
                 else { stack.pop(); } //nothing left, pop off and head back a node
@@ -276,13 +294,13 @@ impl Graph {
     /// get immediate next node from list of connected nodes for the current node
     pub fn get_next(&self, from: &Uuid) -> Option<Uuid> {
         if let Some(n) = self.nodes.get(from) {
-            if let Some(next_id) = n.edges_to.iter().next() {
-                return Some(*next_id.0) // grab uuid key
+            if let Some((next_id,_)) = n.edges_to.iter().next() {
+                if !self.is_tracking || self.nodes.contains_key(&next_id) {
+                    return Some(*next_id) // grab uuid key
+                }
             }
         }
-
-        return None
-        
+        None
     }
 
     fn is_connected() -> bool { false }
@@ -304,6 +322,7 @@ pub enum GraphSearch {
 
 pub struct GraphBuilder(Graph);
 
+/// tracking specifies that you wish to track the from-node connections
 impl GraphBuilder {
     pub fn new() -> GraphBuilder {
         GraphBuilder(Graph::default())
@@ -317,7 +336,7 @@ impl GraphBuilder {
         self.0.is_weighted = w;
         self
     }
-    pub fn track_from_nodes(mut self, t: bool) -> GraphBuilder {
+    pub fn tracking(mut self, t: bool) -> GraphBuilder {
         self.0.is_tracking = t;
         self
     }
