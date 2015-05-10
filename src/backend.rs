@@ -154,32 +154,29 @@ impl Graph {
                 let mut stack = vec!();
 
                 stack.push(from);
-                visited.insert(from);
-                result.push(from);
+                
+                while stack.len() > 0 {
+                    let cursor = *stack.last().unwrap();
+                    visited.insert(cursor);
+                    
+                    if let Some(ref node) = self.get_node(&cursor) {
 
-                let mut cursor = Some(from);
-
-                while cursor.is_some() {
-                    if let Some(ref node) = self.get_node(&cursor.unwrap()) {
                         //get first unvisited node
-                        let not_visited = node.edges_to.iter().find(|&(&n,v)| !visited.contains(&n));
+                        let not_visited = node.edges_to.iter().find(|&(n,_)| !visited.contains(n));
                         
-                        if let Some((&n,w)) = not_visited {
-                            if !self.is_tracking || self.nodes.contains_key(&n) { //node exists?
-                                stack.push(n);
-                                visited.insert(n);
+                        if let Some((&n,_)) = not_visited {
+                            if !self.is_tracking || self.nodes.contains_key(&n) { 
+                                stack.push(n); //add node to check
                                 result.push(n);
 
                                 if let Some(to_node) = to {
                                     if n == to_node { break; }
                                 }
-
-                                cursor = Some(n);
                             }
                         }
-                        else { cursor = stack.pop(); }
+                        else { stack.pop(); } //nothing left, pop off and head back a node
                     }
-                    else { cursor = stack.pop(); }
+                    else { stack.pop(); } //invalid node?
                 }
 
                 if let Some(to_node) = to {
@@ -197,11 +194,9 @@ impl Graph {
                 visited.insert(from);
                 result.push(from);
 
-
-                let mut cursor = Some(from);
-
-                while cursor.is_some() {
-                    if let Some(ref node) = self.get_node(&cursor.unwrap()) {
+                while queue.len() > 0 {
+                    let cursor = *queue.front().unwrap();
+                    if let Some(ref node) = self.get_node(&cursor) {
                         //get unvisted nodes to queue up
                         let not_visited: Vec<Option<(Uuid,Option<f64>)>> = node.edges_to.iter().map(|(&n,&v)| {
                             if !visited.contains(&n) {
@@ -220,15 +215,13 @@ impl Graph {
                                     if let Some(to_node) = to {
                                         if n == to_node { break; }
                                     }
-
-                                    cursor = Some(n);
                                 }
                             }
                         }
 
-                        cursor = queue.pop_front();
+                        queue.pop_front();
                     }
-                    else { cursor = queue.pop_front(); }
+                    else { queue.pop_front(); }
                 }
 
                 if let Some(to_node) = to {
@@ -241,9 +234,6 @@ impl Graph {
             },
             _ => None, // todo: djk algo
         }
-
-        
-        
     }
 
     //this is virtually the same as get_path dfs, should abstract dfs somehow to use it for this
