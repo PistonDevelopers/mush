@@ -16,19 +16,32 @@ pub trait GraphEdge: Copy+Clone {
     //fn get_factor<V>(&self) -> V;
 }
 
+pub trait GraphNode: Clone {
+    fn default () -> Self;
+    
+    fn get_base(&self) -> &NodeBase;
+    fn get_base_mut(&mut self) -> &mut NodeBase;
+    
+    fn get_name(&self) -> &str;
+    fn get_position(&self) -> &[f64;2];
+
+    fn set_name(&mut self, s: &str);
+    fn set_position(&mut self, p: [f64;2]);
+}
+
 //--
 
-#[derive(Debug)]
-pub struct GraphNode {
+#[derive(Debug,Clone)]
+pub struct NodeBase {
     nid: Nid,
     edges_to: HashSet<Nid>,
     edges_from: HashSet<Nid>,
 }
-impl GraphNode {
-    fn new (n: Nid) -> GraphNode {
-        GraphNode { nid: n,
-                    edges_to: HashSet::new(),
-                    edges_from: HashSet::new(), }
+impl NodeBase {
+    fn new () -> NodeBase {
+        NodeBase { nid: Uuid::new_v4(),
+                   edges_to: HashSet::new(),
+                   edges_from: HashSet::new(), }
     }
     /// direct the node towards another node
     // todo: rename me! sounds too similar to unidirectional
@@ -54,8 +67,8 @@ impl GraphNode {
 
 //----
 #[derive(Debug)]
-pub struct Graph<E:GraphEdge> {
-    nodes: HashMap<Nid,GraphNode>,
+pub struct Graph<E:GraphEdge, N:GraphNode> {
+    nodes: HashMap<Nid,N>,
     edges: HashMap<Eid,E>,
     
     // todo: as traits
@@ -65,8 +78,8 @@ pub struct Graph<E:GraphEdge> {
 }
 
 //todo: turn many of these methods into a trait
-impl<E:GraphEdge> Graph<E> {
-    pub fn default() -> Graph<E> {
+impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
+    pub fn default() -> Graph<E,N> {
         Graph { nodes: HashMap::new(),
                 edges: HashMap::new(),
                 is_weighted: false,
@@ -75,18 +88,18 @@ impl<E:GraphEdge> Graph<E> {
     }
 
     /// manual accessors
-    fn get_node_mut(&mut self, n: &Nid) -> Option<&mut GraphNode> {
+    fn get_node_mut(&mut self, n: &Nid) -> Option<&mut N> {
         self.nodes.get_mut(n)
     }
-    fn get_node(&self, n: &Nid) -> Option<&GraphNode> {
+    fn get_node(&self, n: &Nid) -> Option<&N> {
         self.nodes.get(n)
     }
 
     pub fn add (&mut self) -> Nid { //todo: maybe_edges fn arg
-        let uuid = Uuid::new_v4();
-        let n = GraphNode::new(uuid);
-        self.nodes.insert(uuid,n);
-        uuid
+        let n: N = GraphNode::default();
+        let nid = n.get_base().nid;
+        self.nodes.insert(nid,n);
+        nid
     }
    fn add_edge (&mut self, from: &Nid, to: &Nid, e: E) -> Eid {
        let eid = (*from,*to);
@@ -94,7 +107,7 @@ impl<E:GraphEdge> Graph<E> {
        eid
     }
     
-    pub fn remove(&mut self, n: &Nid) -> Option<GraphNode> {
+    pub fn remove(&mut self, n: &Nid) -> Option<N> {
         self.nodes.remove(n)
     }
 
@@ -113,7 +126,7 @@ impl<E:GraphEdge> Graph<E> {
         if !self.get_node(to).is_some() { return false }
         
         if let Some(f) = self.nodes.get_mut(from) {
-            f.direct(to);
+            f.get_base_mut().direct(to);
             r = true;
         }
 
@@ -121,11 +134,11 @@ impl<E:GraphEdge> Graph<E> {
             
             
             if self.is_tracking { let t = self.nodes.get_mut(to).unwrap();
-                                  t.direct_from(from); }
+                                  t.get_base_mut().direct_from(from); }
             
             if !self.is_directed {
                 if let Some(t) = self.nodes.get_mut(to) {
-                    t.direct(to);
+                    t.get_base_mut().direct(to);
                 }
                 else { r = false; }
             }
@@ -140,14 +153,14 @@ impl<E:GraphEdge> Graph<E> {
         let eid = (*from,*to);
         
         if let Some(f) = self.nodes.get_mut(from) {
-            f.undirect(to);
+            f.get_base_mut().undirect(to);
         }
         
         if self.is_tracking {  let t = self.nodes.get_mut(to).unwrap();
-                               t.undirect_from(from); }
+                               t.get_base_mut().undirect_from(from); }
         if !self.is_directed {
             if let Some(t) = self.nodes.get_mut(to) {
-                t.undirect(from);
+                t.get_base_mut().undirect(from);
             }
         }
 
@@ -173,7 +186,7 @@ impl<E:GraphEdge> Graph<E> {
                     if let Some(ref node) = self.get_node(&cursor) {
 
                         //get first unvisited node
-                        let not_visited = node.edges_to.iter().find(|&n| !visited.contains(n));
+                        let not_visited = node.get_base().edges_to.iter().find(|&n| !visited.contains(n));
                         
                         if let Some(&n) = not_visited {
                             if !self.is_tracking || self.nodes.contains_key(&n) { 
@@ -209,7 +222,7 @@ impl<E:GraphEdge> Graph<E> {
                     let cursor = *queue.front().unwrap();
                     if let Some(ref node) = self.get_node(&cursor) {
                         //get unvisted nodes to queue up
-                        let not_visited: Vec<Option<Nid>> = node.edges_to.iter().map(|&n| {
+                        let not_visited: Vec<Option<Nid>> = node.get_base().edges_to.iter().map(|&n| {
                             if !visited.contains(&n) {
                                 Some(n)
                             }
@@ -262,14 +275,14 @@ impl<E:GraphEdge> Graph<E> {
             if let Some(ref node) = self.get_node(&cursor) {
                 
                 //does the cursor point to a node on stack
-                for n in node.edges_to.iter() {
+                for n in node.get_base().edges_to.iter() {
                     if stack.contains(&n) {
                         r.insert((*n,cursor));
                     }
                 }
 
                 //get first unvisited node
-                let not_visited = node.edges_to.iter().find(|n| !visited.contains(n));
+                let not_visited = node.get_base().edges_to.iter().find(|n| !visited.contains(n));
                 
                 if let Some(&n) = not_visited {
                     if !stack.contains(&n) {
@@ -289,7 +302,7 @@ impl<E:GraphEdge> Graph<E> {
     /// get immediate next node from list of connected nodes for the current node
     pub fn get_next(&self, from: &Nid) -> Option<Nid> {
         if let Some(n) = self.nodes.get(from) {
-            if let Some(next_id) = n.edges_to.iter().next() {
+            if let Some(next_id) = n.get_base().edges_to.iter().next() {
                 if !self.is_tracking || self.nodes.contains_key(&next_id) {
                     return Some(*next_id) // grab uuid key
                 }
@@ -315,27 +328,27 @@ pub enum GraphSearch {
 }
 
 
-pub struct GraphBuilder<E:GraphEdge> (Graph<E>);
+pub struct GraphBuilder<E:GraphEdge,N:GraphNode> (Graph<E,N>);
 
 /// tracking specifies that you wish to track the from-node connections
-impl<E:GraphEdge> GraphBuilder<E> {
-    pub fn new() -> GraphBuilder<E> {
+impl<E:GraphEdge, N:GraphNode> GraphBuilder<E,N> {
+    pub fn new() -> GraphBuilder<E,N> {
         GraphBuilder(Graph::default())
     }
 
-    pub fn directed(mut self, d: bool) -> GraphBuilder<E> {
+    pub fn directed(mut self, d: bool) -> GraphBuilder<E,N> {
         self.0.is_directed = d;
         self
     }
-    pub fn weighted(mut self, w: bool) -> GraphBuilder<E> {
+    pub fn weighted(mut self, w: bool) -> GraphBuilder<E,N> {
         self.0.is_weighted = w;
         self
     }
-    pub fn tracking(mut self, t: bool) -> GraphBuilder<E> {
+    pub fn tracking(mut self, t: bool) -> GraphBuilder<E,N> {
         self.0.is_tracking = t;
         self
     }
-    pub fn build(mut self) -> Graph<E> {
+    pub fn build(mut self) -> Graph<E,N> {
         self.0
     }
 }
@@ -347,20 +360,40 @@ impl<E:GraphEdge> GraphBuilder<E> {
 mod tests {
     extern crate test;
 
-    use ::{Graph,GraphSearch,GraphEdge};
+    use ::{Graph,GraphSearch,GraphEdge,GraphNode,NodeBase};
 
     #[derive(Copy,Clone)]
     struct MyEdge {
         factor: f64,
     }
-    
     impl GraphEdge for MyEdge {
         fn default() -> MyEdge { MyEdge { factor:0.0f64 } }
     }
 
+    #[derive(Clone)]
+    struct MyNode {
+        name: String,
+        position: [f64;2],
+        base: NodeBase,
+    }
+    impl GraphNode for MyNode {
+        fn default() -> MyNode { MyNode { name: "".to_string(),
+                                          position: [0.0,0.0],
+                                          base: NodeBase::new() }}
+
+        fn get_base(&self) -> &NodeBase { &self.base }
+        fn get_base_mut(&mut self) -> &mut NodeBase { &mut self.base }
+        
+        fn get_name(&self) -> &str { &self.name }
+        fn get_position(&self) -> &[f64;2] { &self.position }
+
+        fn set_name(&mut self, s: &str) { self.name = s.to_string() }
+        fn set_position(&mut self, p: [f64;2]) { self.position = p }
+    }
+
     #[test]
     fn test_basic_direct() {
-        let mut graph = Graph::default();
+        let mut graph: Graph<MyEdge,MyNode> = Graph::default();
         let mut nodes = vec!();
         for _ in 0..5 {
             nodes.push(graph.add());
@@ -385,7 +418,7 @@ mod tests {
     
     #[test]
     fn test_basic_paths() {
-        let mut graph = Graph::default();
+        let mut graph: Graph<MyEdge,MyNode> = Graph::default();
         let mut nodes = vec!();
         for _ in 0..5 {
             nodes.push(graph.add());
@@ -414,7 +447,7 @@ mod tests {
 
     #[test]
     fn test_basic_cycle() {
-        let mut graph = Graph::default();
+        let mut graph: Graph<MyEdge,MyNode> = Graph::default();
         let mut nodes = vec!();
         for _ in 0..5 {
             nodes.push(graph.add());
