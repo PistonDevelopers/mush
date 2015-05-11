@@ -9,7 +9,7 @@ A graph structure editor library for Conrod.
 ---
 
 on the radar:
-- gui for petgraph
+- gui for directed graphs
 - gui courtesy of conrod/elmesque
 - export/import to json via serialize
 - cyclic warnings
