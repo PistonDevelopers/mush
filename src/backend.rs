@@ -3,81 +3,61 @@
 use uuid::Uuid;
 use std::collections::{HashMap,HashSet,VecDeque};
 
+pub type Nid = Uuid; // graph node id
+pub type Eid = (Nid,Nid); // graph edge id, (From,To)
 
 
 /// unidirectional edge, use two edges for bidirectional/undirected graph
 //#[derive(Hash, Eq, PartialEq, Debug)]
-#[derive(Debug)]
-struct GraphEdge<K> {
-    to: Uuid,
-    maybe_weight: Option<f64>,
-    maybe_custom: Option<K>, // this might 
-}
-impl<K> GraphEdge<K> {
-    // this should be private, this should be called by a graph method
-    fn new (uuid: Uuid, weight: Option<f64>, custom: Option<K>) -> GraphEdge<K> {
-        GraphEdge { to: uuid,
-                    maybe_weight:weight,
-                    maybe_custom: custom }
-    }
-    pub fn get_directed (&self) -> &Uuid {
-        &self.to
-    }
+
     
-    pub fn get_weight (&self) -> Option<&f64> {
-        if let Some(ref w) = self.maybe_weight { Some(w) }
-        else { None }
-    }
-    pub fn get_weight_mut (&mut self) -> Option<&mut f64> {
-        if let Some(ref mut w) = self.maybe_weight { Some(w) }
-        else { None }
-    }
-    
-    pub fn get_custom (&self) -> Option<&K> {
-        if let Some(ref k) = self.maybe_custom { Some(k) }
-        else { None }
-    }
-    pub fn get_custom_mut (&mut self) -> Option<&mut K> {
-        if let Some(ref mut k) = self.maybe_custom { Some(k) }
-        else { None }
-    }
+pub trait GraphEdge: Copy+Clone {
+    fn default () -> Self;
+    //fn get_factor<V>(&self) -> V;
 }
 
 //--
 
 #[derive(Debug)]
-struct GraphNode {
-    uuid: Uuid,
-    edges_to: HashMap<Uuid,Option<f64>>, //to,weight //todo: turn to hashset if using graphedge struct
-    edges_from: HashMap<Uuid,Option<f64>>,
+pub struct GraphNode {
+    nid: Nid,
+    edges_to: HashSet<Nid>,
+    edges_from: HashSet<Nid>,
 }
 impl GraphNode {
-    fn new (uuid: Uuid) -> GraphNode {
-        GraphNode { uuid: uuid,
-                    edges_to: HashMap::new(),
-                    edges_from: HashMap::new(), }
+    fn new (n: Nid) -> GraphNode {
+        GraphNode { nid: n,
+                    edges_to: HashSet::new(),
+                    edges_from: HashSet::new(), }
     }
     /// direct the node towards another node
     // todo: rename me! sounds too similar to unidirectional
-    fn direct (&mut self, to:&Uuid, weight: Option<f64>) {
-        self.edges_to.insert(*to,weight);
+    fn direct (&mut self, to:&Nid) {
+        self.edges_to.insert(*to);
     }
-    fn direct_from (&mut self, to:&Uuid, weight: Option<f64>) {
-        self.edges_from.insert(*to,weight);
+    fn direct_from (&mut self, from:&Nid) {
+        self.edges_from.insert(*from);
     }
-    fn undirect (&mut self, to:&Uuid) {
+    fn undirect (&mut self, to:&Nid) {
         self.edges_to.remove(to);
     }
-    fn undirect_from (&mut self, to:&Uuid) {
-        self.edges_from.remove(to);
+    fn undirect_from (&mut self, from:&Nid) {
+        self.edges_from.remove(from);
     }
+   /* pub fn has_edge_from(&self,from:&Nid) -> bool {
+        self.edges_from.contains((from,self.nid))
+    }
+    pub fn get_edge(&self,to:&Nid) -> bool {
+        self.edges.contains((self.nid,to))
+    }*/
 }
 
 //----
 #[derive(Debug)]
-pub struct Graph {
-    nodes: HashMap<Uuid,GraphNode>,
-
+pub struct Graph<E:GraphEdge> {
+    nodes: HashMap<Nid,GraphNode>,
+    edges: HashMap<Eid,E>,
+    
     // todo: as traits
     is_weighted: bool,
     is_directed: bool,
@@ -85,84 +65,99 @@ pub struct Graph {
 }
 
 //todo: turn many of these methods into a trait
-impl Graph {
-    pub fn default() -> Graph {
+impl<E:GraphEdge> Graph<E> {
+    pub fn default() -> Graph<E> {
         Graph { nodes: HashMap::new(),
+                edges: HashMap::new(),
                 is_weighted: false,
                 is_directed: true,
                 is_tracking: false, }
     }
 
     /// manual accessors
-    fn get_node_mut(&mut self, uuid: &Uuid) -> Option<&mut GraphNode> {
-        self.nodes.get_mut(uuid)
+    fn get_node_mut(&mut self, n: &Nid) -> Option<&mut GraphNode> {
+        self.nodes.get_mut(n)
     }
-    fn get_node(&self, uuid: &Uuid) -> Option<&GraphNode> {
-        self.nodes.get(uuid)
+    fn get_node(&self, n: &Nid) -> Option<&GraphNode> {
+        self.nodes.get(n)
     }
 
-    pub fn add (&mut self) -> Uuid { //todo: maybe_edges fn arg
+    pub fn add (&mut self) -> Nid { //todo: maybe_edges fn arg
         let uuid = Uuid::new_v4();
         let n = GraphNode::new(uuid);
         self.nodes.insert(uuid,n);
         uuid
     }
-    pub fn remove(&mut self, node: &Uuid) -> bool { //Option<GraphNode> {
-        self.nodes.remove(node).is_some()
+   fn add_edge (&mut self, from: &Nid, to: &Nid, e: E) -> Eid {
+       let eid = (*from,*to);
+       self.edges.insert(eid,e);
+       eid
+    }
+    
+    pub fn remove(&mut self, n: &Nid) -> Option<GraphNode> {
+        self.nodes.remove(n)
     }
 
-    pub fn direct(&mut self, from: &Uuid, to: &Uuid) -> bool {
-        let mut r = false;
-
-        if !self.get_node(to).is_some() { return false } // todo: expand on this, and impl for undirect?
-        
-        if let Some(f) = self.nodes.get_mut(from) {
-            f.direct(to,None);
-            r = true;
-        }
-
-         
-        if r && self.is_tracking { let t = self.nodes.get_mut(to).unwrap();
-                                   t.direct_from(from,None); }
-
-        if self.is_directed { return r }
-        else if r {
-            if let Some(t) = self.nodes.get_mut(to) {
-                t.direct(from,None);
-            }
-            else { r = false; }
-        }
-
-        r
+    pub fn get_edge_mut (&mut self, e: &Eid) -> Option<&mut E> {
+        self.edges.get_mut(e)
     }
-    pub fn undirect(&mut self, from: &Uuid, to: &Uuid) -> bool {
+    pub fn get_edge (&self, e: &Eid) -> Option<&E> {
+        self.edges.get(e)
+    }
+
+    //todo: check for previous edge!
+    pub fn direct(&mut self, from: &Nid, to: &Nid, e: E) -> bool {
         let mut r = false;
+        let eid = self.add_edge(from,to,e);
 
         if !self.get_node(to).is_some() { return false }
         
         if let Some(f) = self.nodes.get_mut(from) {
-            f.undirect(to);
+            f.direct(to);
             r = true;
         }
 
-        if r && self.is_tracking {  let t = self.nodes.get_mut(to).unwrap();
-                                    t.undirect_from(from); }
+        if r {
+            
+            
+            if self.is_tracking { let t = self.nodes.get_mut(to).unwrap();
+                                  t.direct_from(from); }
+            
+            if !self.is_directed {
+                if let Some(t) = self.nodes.get_mut(to) {
+                    t.direct(to);
+                }
+                else { r = false; }
+            }
+        }
+
+        if !r { self.edges.remove(&eid); }
         
-        if self.is_directed { return r }
-        else if r {
+        r
+    }
+    
+    pub fn undirect(&mut self, from: &Nid, to: &Nid) {
+        let eid = (*from,*to);
+        
+        if let Some(f) = self.nodes.get_mut(from) {
+            f.undirect(to);
+        }
+        
+        if self.is_tracking {  let t = self.nodes.get_mut(to).unwrap();
+                               t.undirect_from(from); }
+        if !self.is_directed {
             if let Some(t) = self.nodes.get_mut(to) {
                 t.undirect(from);
             }
-            else { r = false; }
         }
 
-        r
+        self.edges.remove(&eid);
     }
 
     // search functions
     // todo: consider weights between nodes to direct search
-    pub fn get_path(&self, s: GraphSearch) -> Option<Vec<Uuid>> {
-        let mut visited: HashSet<Uuid> = HashSet::new();
+    pub fn get_path(&self, s: GraphSearch) -> Option<Vec<Nid>> {
+        let mut visited = HashSet::new();
         let mut result = vec!();
         
         match s {
@@ -178,9 +173,9 @@ impl Graph {
                     if let Some(ref node) = self.get_node(&cursor) {
 
                         //get first unvisited node
-                        let not_visited = node.edges_to.iter().find(|&(n,_)| !visited.contains(n));
+                        let not_visited = node.edges_to.iter().find(|&n| !visited.contains(n));
                         
-                        if let Some((&n,_)) = not_visited {
+                        if let Some(&n) = not_visited {
                             if !self.is_tracking || self.nodes.contains_key(&n) { 
                                 stack.push(n); //add node to check
                                 result.push(n);
@@ -214,15 +209,15 @@ impl Graph {
                     let cursor = *queue.front().unwrap();
                     if let Some(ref node) = self.get_node(&cursor) {
                         //get unvisted nodes to queue up
-                        let not_visited: Vec<Option<(Uuid,Option<f64>)>> = node.edges_to.iter().map(|(&n,&v)| {
+                        let not_visited: Vec<Option<Nid>> = node.edges_to.iter().map(|&n| {
                             if !visited.contains(&n) {
-                                Some((n,v))
+                                Some(n)
                             }
                             else { None }
                         }).collect();
 
                         for maybe_node in not_visited {
-                            if let Some((n,w)) = maybe_node {
+                            if let Some(n) = maybe_node {
                                 if !self.is_tracking || self.nodes.contains_key(&n) { //node exists?
                                     queue.push_back(n);
                                     visited.insert(n);
@@ -253,9 +248,9 @@ impl Graph {
     }
 
     //this is virtually the same as get_path dfs, should abstract dfs somehow to use it for this
-    pub fn get_cycle(&self, from: Uuid) -> HashSet<(Uuid,Uuid)> {
+    pub fn get_cycle(&self, from: Nid) -> HashSet<(Nid,Nid)> {
         let mut stack = vec!();
-        let mut visited: HashSet<Uuid> = HashSet::new();
+        let mut visited = HashSet::new();
         let mut r = HashSet::new(); //Vec::new();
 
         stack.push(from);
@@ -267,16 +262,16 @@ impl Graph {
             if let Some(ref node) = self.get_node(&cursor) {
                 
                 //does the cursor point to a node on stack
-                for (n,_) in node.edges_to.iter() {
+                for n in node.edges_to.iter() {
                     if stack.contains(&n) {
                         r.insert((*n,cursor));
                     }
                 }
 
                 //get first unvisited node
-                let not_visited = node.edges_to.iter().find(|&(n,_)| !visited.contains(n));
+                let not_visited = node.edges_to.iter().find(|n| !visited.contains(n));
                 
-                if let Some((&n,_)) = not_visited {
+                if let Some(&n) = not_visited {
                     if !stack.contains(&n) {
                         if !self.is_tracking || self.nodes.contains_key(&n) {
                             stack.push(n); //add node to check
@@ -292,9 +287,9 @@ impl Graph {
     }
 
     /// get immediate next node from list of connected nodes for the current node
-    pub fn get_next(&self, from: &Uuid) -> Option<Uuid> {
+    pub fn get_next(&self, from: &Nid) -> Option<Nid> {
         if let Some(n) = self.nodes.get(from) {
-            if let Some((next_id,_)) = n.edges_to.iter().next() {
+            if let Some(next_id) = n.edges_to.iter().next() {
                 if !self.is_tracking || self.nodes.contains_key(&next_id) {
                     return Some(*next_id) // grab uuid key
                 }
@@ -314,33 +309,33 @@ impl Graph {
 
 // todo: impl as trait instead?
 pub enum GraphSearch {
-    Depth(Uuid,Option<Uuid>), // used on part of graph for reachability, and all of graph for cycle-detection
-    Breadth(Uuid,Option<Uuid>), // used on part of graph for reachability, and (unweighted) for shortest path
-    Dijkstra(Uuid,Uuid), // used on part of graph (weighted) for shortest path
+    Depth(Nid,Option<Nid>), // used on part of graph for reachability, and all of graph for cycle-detection
+    Breadth(Nid,Option<Nid>), // used on part of graph for reachability, and (unweighted) for shortest path
+    Dijkstra(Nid,Nid), // used on part of graph (weighted) for shortest path
 }
 
 
-pub struct GraphBuilder(Graph);
+pub struct GraphBuilder<E:GraphEdge> (Graph<E>);
 
 /// tracking specifies that you wish to track the from-node connections
-impl GraphBuilder {
-    pub fn new() -> GraphBuilder {
+impl<E:GraphEdge> GraphBuilder<E> {
+    pub fn new() -> GraphBuilder<E> {
         GraphBuilder(Graph::default())
     }
 
-    pub fn directed(mut self, d: bool) -> GraphBuilder {
+    pub fn directed(mut self, d: bool) -> GraphBuilder<E> {
         self.0.is_directed = d;
         self
     }
-    pub fn weighted(mut self, w: bool) -> GraphBuilder {
+    pub fn weighted(mut self, w: bool) -> GraphBuilder<E> {
         self.0.is_weighted = w;
         self
     }
-    pub fn tracking(mut self, t: bool) -> GraphBuilder {
+    pub fn tracking(mut self, t: bool) -> GraphBuilder<E> {
         self.0.is_tracking = t;
         self
     }
-    pub fn build(mut self) -> Graph {
+    pub fn build(mut self) -> Graph<E> {
         self.0
     }
 }
@@ -352,10 +347,16 @@ impl GraphBuilder {
 mod tests {
     extern crate test;
 
-    use ::{Graph,GraphSearch};
+    use ::{Graph,GraphSearch,GraphEdge};
 
-    use uuid::Uuid;
-    use std::collections::{HashMap};
+    #[derive(Copy,Clone)]
+    struct MyEdge {
+        factor: f64,
+    }
+    
+    impl GraphEdge for MyEdge {
+        fn default() -> MyEdge { MyEdge { factor:0.0f64 } }
+    }
 
     #[test]
     fn test_basic_direct() {
@@ -364,18 +365,20 @@ mod tests {
         for _ in 0..5 {
             nodes.push(graph.add());
         }
-        
-        assert!(graph.direct(&nodes[0],&nodes[1]));
 
-        assert!(graph.direct(&nodes[3],&nodes[0]));
-        assert!(graph.direct(&nodes[4],&nodes[3]));
+        let edge_def = MyEdge::default();
+        
+        assert!(graph.direct(&nodes[0],&nodes[1],edge_def));
+
+        assert!(graph.direct(&nodes[3],&nodes[0],edge_def));
+        assert!(graph.direct(&nodes[4],&nodes[3],edge_def));
 
         graph.remove(&nodes[2]);
-        assert!(!graph.direct(&nodes[4],&nodes[2]));
+        assert!(!graph.direct(&nodes[4],&nodes[2],edge_def));
         
         let n6 = graph.add();
-        assert!(graph.direct(&n6,&nodes[3]));
-        assert!(graph.direct(&nodes[0],&n6));
+        assert!(graph.direct(&n6,&nodes[3],edge_def));
+        assert!(graph.direct(&nodes[0],&n6,edge_def));
     }
 
 
@@ -387,11 +390,13 @@ mod tests {
         for _ in 0..5 {
             nodes.push(graph.add());
         }
-        
-        graph.direct(&nodes[0],&nodes[1]);
 
-        graph.direct(&nodes[3],&nodes[0]);
-        graph.direct(&nodes[4],&nodes[3]);
+        let edge_def = MyEdge::default();
+        
+        graph.direct(&nodes[0],&nodes[1],edge_def);
+
+        graph.direct(&nodes[3],&nodes[0],edge_def);
+        graph.direct(&nodes[4],&nodes[3],edge_def);
 
         graph.remove(&nodes[2]);
 
@@ -414,11 +419,13 @@ mod tests {
         for _ in 0..5 {
             nodes.push(graph.add());
         }
-        
-        graph.direct(&nodes[0],&nodes[1]);
 
-        graph.direct(&nodes[3],&nodes[0]);
-        graph.direct(&nodes[4],&nodes[3]);
+        let edge_def = MyEdge::default();
+        
+        graph.direct(&nodes[0],&nodes[1],edge_def);
+
+        graph.direct(&nodes[3],&nodes[0],edge_def);
+        graph.direct(&nodes[4],&nodes[3],edge_def);
 
         graph.remove(&nodes[2]);
 
@@ -427,15 +434,14 @@ mod tests {
         assert_eq!(r.len(),0);
         
         let n6 = graph.add();
-        graph.direct(&n6,&nodes[3]);
-        graph.direct(&nodes[0],&n6);
+        graph.direct(&n6,&nodes[3],edge_def);
+        graph.direct(&nodes[0],&n6,edge_def);
 
         let n7 = graph.add();
-        graph.direct(&n7,&nodes[3]);
-        graph.direct(&nodes[0],&n7);
+        graph.direct(&n7,&nodes[3],edge_def);
+        graph.direct(&nodes[0],&n7,edge_def);
         
         let r = graph.get_cycle(nodes[4]);
-        println!("{:?}",r);
         assert_eq!(r.len(),2);
     }
 }

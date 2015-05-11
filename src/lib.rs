@@ -9,7 +9,7 @@ extern crate uuid;
 
 pub use toolpane::{ToolPane};
 pub use graph::{EditableNode, EditableEdge};
-pub use backend::{Graph,GraphSearch};
+pub use backend::{Graph,GraphSearch,GraphEdge};
 
 pub mod widgets;
 pub mod toolpane;
