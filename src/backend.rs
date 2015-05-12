@@ -8,15 +8,12 @@ pub type Eid = (Nid,Nid); // graph edge id, (From,To)
 
 
 /// unidirectional edge, use two edges for bidirectional/undirected graph
-//#[derive(Hash, Eq, PartialEq, Debug)]
-
-    
 pub trait GraphEdge: Copy+Clone {
     fn default () -> Self;
     //fn get_factor<V>(&self) -> V;
 }
 
-pub trait GraphNode: Clone {
+pub trait GraphNode: Clone+EdgeGuard {
     fn default () -> Self;
     
     fn get_base(&self) -> &NodeBase;
@@ -29,9 +26,13 @@ pub trait GraphNode: Clone {
     fn set_position(&mut self, p: [f64;2]);
 }
 
+/// trait specifying node connection requirements
+pub trait EdgeGuard: PartialEq {
+    fn guard(&self, node: &Self) -> bool;
+}
 //--
 
-#[derive(Debug,Clone)]
+#[derive(Debug,Clone,PartialEq)]
 pub struct NodeBase {
     nid: Nid,
     edges_to: HashSet<Nid>,
@@ -121,6 +122,13 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
     //todo: check for previous edge!
     pub fn direct(&mut self, from: &Nid, to: &Nid, e: E) -> bool {
         let mut r = false;
+
+        if let Some(f) = self.nodes.get(from) {
+            if let Some(t) = self.nodes.get(to) {
+                if !f.guard(t) { return false }
+            }
+        }
+        
         let eid = self.add_edge(from,to,e);
 
         if !self.get_node(to).is_some() { return false }
@@ -360,26 +368,38 @@ impl<E:GraphEdge, N:GraphNode> GraphBuilder<E,N> {
 mod tests {
     extern crate test;
 
-    use ::{Graph,GraphSearch,GraphEdge,GraphNode,NodeBase};
+    use ::{Graph,GraphSearch,GraphEdge,GraphNode,NodeBase,EdgeGuard};
 
-    #[derive(Copy,Clone)]
+    #[derive(Copy,Clone,PartialEq)]
     struct MyEdge {
         factor: f64,
     }
     impl GraphEdge for MyEdge {
-        fn default() -> MyEdge { MyEdge { factor:0.0f64 } }
+        fn default() -> MyEdge { MyEdge { factor:0.0f64, } }
     }
 
-    #[derive(Clone)]
+
+    #[derive(Copy,Clone,PartialEq)]
+    enum MyGuard {
+        In,
+        Out,
+        Root,
+    }
+
+    #[derive(Clone,PartialEq)]
     struct MyNode {
         name: String,
         position: [f64;2],
         base: NodeBase,
+        guard: MyGuard,
+        kind: MyGuard,
     }
     impl GraphNode for MyNode {
         fn default() -> MyNode { MyNode { name: "".to_string(),
-                                          position: [0.0,0.0],
-                                          base: NodeBase::new() }}
+                                             position: [0.0,0.0],
+                                             base: NodeBase::new(),
+                                             guard: MyGuard::In,
+                                             kind: MyGuard::Out }}
 
         fn get_base(&self) -> &NodeBase { &self.base }
         fn get_base_mut(&mut self) -> &mut NodeBase { &mut self.base }
@@ -390,6 +410,19 @@ mod tests {
         fn set_name(&mut self, s: &str) { self.name = s.to_string() }
         fn set_position(&mut self, p: [f64;2]) { self.position = p }
     }
+
+    // setup node-edge guards
+    impl EdgeGuard for MyNode {
+        fn guard(&self, other: &Self) -> bool {
+            match (self.guard,other.kind) {
+                (MyGuard::In,MyGuard::Root) => true,
+                (MyGuard::In,MyGuard::Out) => true,
+                _ => false,
+            }
+        }
+    }
+
+    
 
     #[test]
     fn test_basic_direct() {
@@ -476,5 +509,23 @@ mod tests {
         
         let r = graph.get_cycle(nodes[4]);
         assert_eq!(r.len(),2);
+    }
+
+    #[test]
+    fn test_basic_guard() {
+        let mut graph: Graph<MyEdge,MyNode> = Graph::default();
+        let mut nodes = vec!();
+        for _ in 0..5 {
+            nodes.push(graph.add());
+        }
+
+        // for this test: node kind is 'out' by default, and guard is 'in'
+        graph.get_node_mut(&nodes[0]).unwrap().kind = MyGuard::Root;
+        graph.get_node_mut(&nodes[2]).unwrap().kind = MyGuard::In;
+
+        let edge_def = MyEdge::default();
+        
+        assert!(graph.direct(&nodes[1],&nodes[0],edge_def)); // out to root
+        assert!(graph.direct(&nodes[2],&nodes[1],edge_def)); // in to out
     }
 }
