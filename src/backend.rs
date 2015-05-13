@@ -10,7 +10,6 @@ pub type Eid = (Nid,Nid); // graph edge id, (From,To)
 /// unidirectional edge, use two edges for bidirectional/undirected graph
 pub trait GraphEdge: Copy+Clone {
     fn default () -> Self;
-    //fn get_factor<V>(&self) -> V;
 }
 
 pub trait GraphNode: Clone+EdgeGuard {
@@ -77,6 +76,19 @@ pub struct Graph<E:GraphEdge, N:GraphNode> {
     is_directed: bool,
     is_tracking: bool,  // tracking from-edges
 }
+
+// todo: work on getting this to work along side of regular graph direct method
+/*impl<E:GraphEdge, N:GraphNode> Graph<E,N> where N: EdgeGuard {
+    pub fn direct(&mut self, from: &Nid, to: &Nid, e: E) -> bool {
+        if let Some(f) = self.nodes.get(from) {
+            if let Some(t) = self.nodes.get(to) {
+                if !f.guard(t) { return false }
+            }
+        }
+
+        true
+    }
+}*/
 
 //todo: turn many of these methods into a trait
 impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
@@ -307,6 +319,22 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
         return r
     }
 
+    /// get all nodes in their graph layout (DFS)
+    pub fn get_all_nodes(&self) -> Vec<Vec<Nid>> {
+        let mut result = vec!();
+        let mut visited = HashSet::new();
+        
+        for (n,d) in &self.nodes {
+            if !visited.contains(n) {
+                if let Some(r) = self.get_path(GraphSearch::Depth(*n,None)) {
+                    for _n in r.iter() { visited.insert(*_n); }
+                    result.push(r);
+                }
+            }
+        }
+        result
+    }
+
     /// get immediate next node from list of connected nodes for the current node
     pub fn get_next(&self, from: &Nid) -> Option<Nid> {
         if let Some(n) = self.nodes.get(from) {
@@ -527,5 +555,6 @@ mod tests {
         
         assert!(graph.direct(&nodes[1],&nodes[0],edge_def)); // out to root
         assert!(graph.direct(&nodes[2],&nodes[1],edge_def)); // in to out
+        assert!(!graph.direct(&nodes[1],&nodes[2],edge_def)); // out to in
     }
 }
