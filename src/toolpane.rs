@@ -1,6 +1,6 @@
 extern crate petgraph;
 
-use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable};
+use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable,Widget};
 use opengl_graphics::glyph_cache::GlyphCache;
 use petgraph::Graph;
 

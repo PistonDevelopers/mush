@@ -1,4 +1,4 @@
-use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable};
+use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable,Widget};
 use petgraph::Graph;
 use petgraph::graph::NodeIndex;
 use opengl_graphics::glyph_cache::GlyphCache;
