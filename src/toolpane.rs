@@ -1,6 +1,6 @@
 extern crate petgraph;
 
-use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable,Widget};
+use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable,Widget,WidgetId};
 use opengl_graphics::glyph_cache::GlyphCache;
 use petgraph::Graph;
 
@@ -8,13 +8,13 @@ use graph::{UiGraph, EditableNode, EditableEdge};
 
 pub struct ToolPane<N: EditableNode, E: EditableEdge, F> {
     ui_graph: UiGraph<N, E>,
-    ui_id_offset: UiId,
+    ui_id_offset: WidgetId,
     maybe_on_save: Option<F>
 }
 
 impl<N: EditableNode, E: EditableEdge, F: Fn(Graph<N, E>)> ToolPane<N, E, F> {
 
-    pub fn new(offset: UiId, source_graph: &Graph<N, E>) -> ToolPane<N, E, F>
+    pub fn new(offset: WidgetId, source_graph: &Graph<N, E>) -> ToolPane<N, E, F>
     {
         ToolPane {
             ui_graph: UiGraph::new(source_graph, offset + 2),
@@ -28,7 +28,7 @@ impl<N: EditableNode, E: EditableEdge, F: Fn(Graph<N, E>)> ToolPane<N, E, F> {
     }
 
     pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
-        let id_offset = self.ui_id_offset;
+        let id_offset: WidgetId = self.ui_id_offset;
 
         // we should use a canvas to place this appropriately
         Button::new()

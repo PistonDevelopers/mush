@@ -1,4 +1,4 @@
-use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable,Widget};
+use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable,Widget,WidgetId, UserInput};
 use petgraph::Graph;
 use petgraph::graph::NodeIndex;
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -16,7 +16,7 @@ pub trait EditableEdge: Clone {
 
 pub struct UiNode<N: EditableNode> {
     source_node: N,
-    ui_id: UiId,
+    ui_id: WidgetId,
 
     // NOTE - These state variables probably eventually belong in a conrod widget state..
     drag: bool,
@@ -29,11 +29,14 @@ impl<N: EditableNode> UiNode<N> {
 
         if self.destroy { return }
 
+        let ui_id_start: WidgetId = self.ui_id;
+
+        // fixme!
         if self.drag {
-            self.source_node.set_position(ui.mouse.xy);
+            //self.source_node.set_position(ui.mouse.xy); //mouse from ui is now private in conrod
         }
 
-        let ui_id_start = self.ui_id;
+        
 
         let position = self.source_node.get_position();
 
@@ -62,7 +65,7 @@ impl<N: EditableNode> UiNode<N> {
 
         if !self.collapse {
             Label::new(self.source_node.get_label())
-                .down_from(ui_id_start, 5.0)
+                .down_from(UiId::Widget(ui_id_start), 5.0)
                 .set(ui_id_start + 3, ui);
         }
     }
@@ -70,18 +73,18 @@ impl<N: EditableNode> UiNode<N> {
 
 pub struct UiEdge<E> {
     source_edge: E,
-    ui_id: UiId,
+    ui_id: WidgetId,
 }
 
 pub struct UiGraph<N: EditableNode, E: EditableEdge> {
     graph: Graph<UiNode<N>, UiEdge<E>>,
-    ui_id_range: [UiId; 2],
+    ui_id_range: [WidgetId; 2],
 }
 
 impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
 
     /// Initialize a UiGraph from a source graph structure
-    pub fn new(source_graph: &Graph<N, E>, start_index: UiId) -> UiGraph<N, E> {
+    pub fn new(source_graph: &Graph<N, E>, start_index: WidgetId) -> UiGraph<N, E> {
 
         let mut graph = Graph::new();
 
