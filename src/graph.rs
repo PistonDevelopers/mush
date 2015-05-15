@@ -20,15 +20,15 @@ pub struct UiNode<N: EditableNode> {
     ui_id: WidgetId,
 
     // NOTE - These state variables probably eventually belong in a conrod widget state..
-    drag: bool,
+    select: bool,
     collapse: bool,
     destroy: bool,
 }
 
 impl<N: EditableNode> UiNode<N> {
-    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
+    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) -> bool {
 
-        if self.destroy { return }
+        if self.destroy { return false }
 
         let mut canvas_height = 100.0;
         let mut cl = "<"; //canvas label
@@ -39,39 +39,54 @@ impl<N: EditableNode> UiNode<N> {
 
         let position = self.source_node.get_position();
 
+        let mut color = white();
+        if self.select { color=red(); }
+        
         //floating canvas where our node data resides
         Floating::new()
             .label(self.source_node.get_label())
             .xy(position[0], position[1])
             .height(canvas_height) //I think floating canvas is missing dynamic dimensions, so this only works the once and cache is then set
             .color(blue())
-            .label_color(white())
+            .label_color(color)
             .set(ui_id_start, ui);
 
 
 
         //build buttons in reverse order, to stay within canvas
         //start at top right, and head left from
+        //close button
         Button::new()
             .top_right_of(ui_id_start) //todo: shift up ~5.0
             .label("x")
             .dimensions(20.0,20.0)
             .react(|| self.destroy = true)
-            .set(ui_id_start + 2, ui);
-        
+            .set(ui_id_start + 1, ui);
+
+        //collapse
         Button::new()
             .left(5.0)
             .label(cl)
             .dimensions(20.0,20.0)
             .react(|| self.collapse = !self.collapse)
-            .set(ui_id_start + 1, ui);
+            .set(ui_id_start + 2, ui);
+
+        //connector
+        Button::new()
+            .top_left_of(ui_id_start) //todo: shift up ~5.0
+            .label("o")
+            .dimensions(20.0,20.0)
+            .react(|| self.select = !self.select)
+            .set(ui_id_start + 3, ui);
 
         //todo: collapse floating canvas above!
         if !self.collapse {
             Label::new("Node Data")
                 .middle_of(ui_id_start)
-                .set(ui_id_start + 3, ui);
+                .set(ui_id_start + 4, ui);
         }
+
+        self.select
     }
 }
 
@@ -100,7 +115,7 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
             graph.add_node(UiNode {
                 source_node: node.weight.clone(),
                 ui_id: ui_id,
-                drag: false,
+                select: false,
                 collapse: false,
                 destroy: false,
             });
@@ -130,7 +145,7 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
         self.graph.add_node(UiNode {
             source_node: N::default(),
             ui_id: ui_id_range[1],
-            drag: false,
+            select: false,
             collapse: false,
             destroy: false,
         });
@@ -138,11 +153,40 @@ impl<N: EditableNode, E: EditableEdge> UiGraph<N, E> {
     }
 
     pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
+        let mut select: (Option<NodeIndex>,Option<NodeIndex>) = (None,None);
         self.cleanup();
         let node_count = self.graph.node_count();
         for i in (0..node_count) {
             let index = NodeIndex::new(i);
-            self.graph.node_weight_mut(index).map(|node| node.build_ui(ui));
+            for n in self.graph.node_weight_mut(index) {
+                if n.build_ui(ui) { //selected?
+                    if select.0.is_some() {
+                        if !select.1.is_some() {
+                            select.1 = Some(index);
+                        }
+                    }
+                    else { select.0 = Some(index); }
+                }
+            }
+        }
+
+        // build new edge
+        match select {
+            (Some(first),Some(second)) => {
+                let nid = self.graph[first].ui_id;
+                self.graph.add_edge(first,second, UiEdge {
+                    source_edge: E::default(),
+                    ui_id: nid,
+                });
+                //clear node selection
+                for i in (0..node_count) {
+                    let index = NodeIndex::new(i);
+                    for n in self.graph.node_weight_mut(index) {
+                        n.select = false;
+                    }
+                }
+            },
+            _ => (),
         }
     }
 
