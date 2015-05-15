@@ -1,6 +1,9 @@
 extern crate petgraph;
 
 use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable,Widget,WidgetId};
+use conrod::color::{blue, light_grey, orange, dark_grey, red, white};
+use conrod::{Colorable, Label, Split, WidgetMatrix, Floating};
+
 use opengl_graphics::glyph_cache::GlyphCache;
 use petgraph::Graph;
 
@@ -17,7 +20,7 @@ impl<N: EditableNode, E: EditableEdge, F: Fn(Graph<N, E>)> ToolPane<N, E, F> {
     pub fn new(offset: WidgetId, source_graph: &Graph<N, E>) -> ToolPane<N, E, F>
     {
         ToolPane {
-            ui_graph: UiGraph::new(source_graph, offset + 2),
+            ui_graph: UiGraph::new(source_graph, offset + 7),
             ui_id_offset: offset,
             maybe_on_save: None,
         }
@@ -30,20 +33,28 @@ impl<N: EditableNode, E: EditableEdge, F: Fn(Graph<N, E>)> ToolPane<N, E, F> {
     pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
         let id_offset: WidgetId = self.ui_id_offset;
 
+        // Construct our Canvas tree.
+        Split::new(id_offset).flow_right(&[
+            //Split::new(id_offset+1).color(light_grey()).pad(100.0),
+            Split::new(id_offset+1).color(dark_grey())
+                ]).set(ui);
+
+
+        
         // we should use a canvas to place this appropriately
         Button::new()
-            .xy(-1.0*ui.win_w/2.0+50.0,ui.win_h/2.0-20.0)
+            .top_left_of(id_offset+1)
             .label("Save")
             .dimensions(100.0, 40.0)
             .react(|| self.save())
-            .set(id_offset, ui);
+            .set(id_offset+3, ui);
 
         Button::new()
-            .xy(-1.0*ui.win_w/2.0+150.0, ui.win_h/2.0-20.0)
+            .right(5.0)
             .label("New Node")
             .dimensions(100.0, 40.0)
             .react(|| self.ui_graph.add_node())
-            .set(id_offset + 1, ui);
+            .set(id_offset+4, ui);
 
         self.ui_graph.build_ui(ui)
     }

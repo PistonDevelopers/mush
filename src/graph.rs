@@ -1,4 +1,5 @@
-use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable,Widget,WidgetId, UserInput};
+use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable,Widget,WidgetId, UserInput, Floating,Colorable};
+use conrod::color::{blue, light_orange, orange, dark_orange, red, white};
 use petgraph::Graph;
 use petgraph::graph::NodeIndex;
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -29,43 +30,46 @@ impl<N: EditableNode> UiNode<N> {
 
         if self.destroy { return }
 
-        let ui_id_start: WidgetId = self.ui_id;
-
-        // fixme!
-        if self.drag {
-            //self.source_node.set_position(ui.mouse.xy); //mouse from ui is now private in conrod
-        }
-
+        let mut canvas_height = 100.0;
+        let mut cl = "<"; //canvas label
+        if self.collapse { cl = ">";
+                           canvas_height = 10.0; }
         
+        let ui_id_start: WidgetId = self.ui_id;
 
         let position = self.source_node.get_position();
 
-        Button::new() //this should be a press-action, not a release; fixme with custom widget! also conrod should have a drag controller widget, which is basically what we're building
+        //floating canvas where our node data resides
+        Floating::new()
+            .label(self.source_node.get_label())
             .xy(position[0], position[1])
-            .dimensions(100.0,20.0)
-            .react(|| self.drag = !self.drag)
+            .height(canvas_height) //I think floating canvas is missing dynamic dimensions, so this only works the once and cache is then set
+            .color(blue())
+            .label_color(white())
             .set(ui_id_start, ui);
 
-        let mut cl = "<";
-        if self.collapse { cl = ">"; }
 
+
+        //build buttons in reverse order, to stay within canvas
+        //start at top right, and head left from
         Button::new()
-            .right(5.0)
+            .top_right_of(ui_id_start) //todo: shift up ~5.0
+            .label("x")
+            .dimensions(20.0,20.0)
+            .react(|| self.destroy = true)
+            .set(ui_id_start + 2, ui);
+        
+        Button::new()
+            .left(5.0)
             .label(cl)
             .dimensions(20.0,20.0)
             .react(|| self.collapse = !self.collapse)
             .set(ui_id_start + 1, ui);
 
-        Button::new()
-            .right(5.0)
-            .label("x")
-            .dimensions(20.0,20.0)
-            .react(|| self.destroy = true)
-            .set(ui_id_start + 2, ui);
-
+        //todo: collapse floating canvas above!
         if !self.collapse {
-            Label::new(self.source_node.get_label())
-                .down_from(UiId::Widget(ui_id_start), 5.0)
+            Label::new("Node Data")
+                .middle_of(ui_id_start)
                 .set(ui_id_start + 3, ui);
         }
     }

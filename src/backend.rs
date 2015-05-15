@@ -65,6 +65,14 @@ impl NodeBase {
     }*/
 }
 
+pub trait Backend {
+    type N;
+    type I; //node id
+    
+    fn default() -> Self;
+    
+}
+
 //----
 #[derive(Debug)]
 pub struct Graph<E:GraphEdge, N:GraphNode> {
@@ -90,15 +98,27 @@ pub struct Graph<E:GraphEdge, N:GraphNode> {
     }
 }*/
 
-//todo: turn many of these methods into a trait
-impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
-    pub fn default() -> Graph<E,N> {
+impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
+    type N = NodeBase;
+    type I = Nid;
+    fn default() -> Graph<E,N> {
         Graph { nodes: HashMap::new(),
                 edges: HashMap::new(),
                 is_weighted: false,
                 is_directed: true,
                 is_tracking: false, }
     }
+}
+
+//todo: turn many of these methods into a trait
+impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
+    /*pub fn default() -> Graph<E,N> {
+        Graph { nodes: HashMap::new(),
+                edges: HashMap::new(),
+                is_weighted: false,
+                is_directed: true,
+                is_tracking: false, }
+    }*/
 
     /// manual accessors
     fn get_node_mut(&mut self, n: &Nid) -> Option<&mut N> {
@@ -398,6 +418,8 @@ mod tests {
 
     use ::{Graph,GraphSearch,GraphEdge,GraphNode,NodeBase,EdgeGuard};
 
+    use super::{Backend};
+    
     #[derive(Copy,Clone,PartialEq)]
     struct MyEdge {
         factor: f64,

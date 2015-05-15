@@ -76,7 +76,7 @@ fn main () {
     println!("{:?}", graph);
 
     // Let ui graph allocate UiIds starting at 100. Not sure if this is a good idea..
-    let ui_id_offset = 100;
+    let ui_id_offset = 0;
     let mut tools = ToolPane::new(ui_id_offset, &graph);
     tools.on_save(|graph| println!("{:?}", graph));
 
