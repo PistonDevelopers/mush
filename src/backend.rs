@@ -13,16 +13,17 @@ pub trait GraphEdge: Copy+Clone {
 }
 
 pub trait GraphNode: Clone+EdgeGuard {
+    type P; // position
     fn default () -> Self;
     
     fn get_base(&self) -> &NodeBase;
     fn get_base_mut(&mut self) -> &mut NodeBase;
     
     fn get_name(&self) -> &str;
-    fn get_position(&self) -> &[f64;2];
+    fn get_position(&self) -> &Self::P;
 
     fn set_name(&mut self, s: &str);
-    fn set_position(&mut self, p: [f64;2]);
+    fn set_position(&mut self, p: Self::P);
 }
 
 /// trait specifying node connection requirements
@@ -65,12 +66,23 @@ impl NodeBase {
     }*/
 }
 
-pub trait Backend {
+/// iterator iterates over all nodes existing in graph, regardless of edges
+pub trait Backend { //: Iterator {
     type N;
-    type I; //node id
+    type E;
+    type Nid; //node id
+    type Eid;
+    
     
     fn default() -> Self;
-    
+    fn get_node(&self, n: &Self::Nid) -> Option<&Self::N>;
+    fn get_node_mut(&mut self, n: &Nid) -> Option<&mut Self::N>;
+    fn get_edge_mut (&mut self, e: &Eid) -> Option<&mut Self::E>;
+    fn get_edge (&self, e: &Self::Eid) -> Option<&Self::E>;
+    fn add (&mut self) -> Self::Nid;
+    fn remove(&mut self, n: &Self::Nid) -> Option<Self::N>;
+    fn direct(&mut self, from: &Self::Nid, to: &Self::Nid, e: Self::E) -> bool;
+    fn undirect(&mut self, from: &Self::Nid, to: &Self::Nid);
 }
 
 //----
@@ -99,8 +111,10 @@ pub struct Graph<E:GraphEdge, N:GraphNode> {
 }*/
 
 impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
-    type N = NodeBase;
-    type I = Nid;
+    type N = N;
+    type E = E;
+    type Nid = Nid;
+    type Eid = Eid;
     fn default() -> Graph<E,N> {
         Graph { nodes: HashMap::new(),
                 edges: HashMap::new(),
@@ -108,17 +122,6 @@ impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
                 is_directed: true,
                 is_tracking: false, }
     }
-}
-
-//todo: turn many of these methods into a trait
-impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
-    /*pub fn default() -> Graph<E,N> {
-        Graph { nodes: HashMap::new(),
-                edges: HashMap::new(),
-                is_weighted: false,
-                is_directed: true,
-                is_tracking: false, }
-    }*/
 
     /// manual accessors
     fn get_node_mut(&mut self, n: &Nid) -> Option<&mut N> {
@@ -128,31 +131,25 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
         self.nodes.get(n)
     }
 
-    pub fn add (&mut self) -> Nid { //todo: maybe_edges fn arg
+    fn get_edge_mut (&mut self, e: &Eid) -> Option<&mut E> {
+        self.edges.get_mut(e)
+    }
+    fn get_edge (&self, e: &Eid) -> Option<&E> {
+        self.edges.get(e)
+    }
+
+    fn add (&mut self) -> Nid { //todo: maybe_edges fn arg
         let n: N = GraphNode::default();
         let nid = n.get_base().nid;
         self.nodes.insert(nid,n);
         nid
     }
-   fn add_edge (&mut self, from: &Nid, to: &Nid, e: E) -> Eid {
-       let eid = (*from,*to);
-       self.edges.insert(eid,e);
-       eid
-    }
-    
-    pub fn remove(&mut self, n: &Nid) -> Option<N> {
+    fn remove(&mut self, n: &Nid) -> Option<N> {
         self.nodes.remove(n)
     }
 
-    pub fn get_edge_mut (&mut self, e: &Eid) -> Option<&mut E> {
-        self.edges.get_mut(e)
-    }
-    pub fn get_edge (&self, e: &Eid) -> Option<&E> {
-        self.edges.get(e)
-    }
-
     //todo: check for previous edge!
-    pub fn direct(&mut self, from: &Nid, to: &Nid, e: E) -> bool {
+    fn direct(&mut self, from: &Nid, to: &Nid, e: E) -> bool {
         let mut r = false;
 
         if let Some(f) = self.nodes.get(from) {
@@ -189,7 +186,7 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
         r
     }
     
-    pub fn undirect(&mut self, from: &Nid, to: &Nid) {
+    fn undirect(&mut self, from: &Nid, to: &Nid) {
         let eid = (*from,*to);
         
         if let Some(f) = self.nodes.get_mut(from) {
@@ -205,6 +202,16 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
         }
 
         self.edges.remove(&eid);
+    }
+
+}
+
+//todo: turn many of these methods into a trait
+impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
+    fn add_edge (&mut self, from: &Nid, to: &Nid, e: E) -> Eid {
+        let eid = (*from,*to);
+        self.edges.insert(eid,e);
+        eid
     }
 
     // search functions
@@ -383,6 +390,12 @@ pub enum GraphSearch {
     Dijkstra(Nid,Nid), // used on part of graph (weighted) for shortest path
 }
 
+/*impl<'a, E:GraphEdge, N:GraphNode> Iterator for Graph<E,N> {
+    type Item = &'a N;
+    fn next(&mut self) -> Option<Self::Item> {
+        self.nodes.values().next()
+    }
+}*/
 
 pub struct GraphBuilder<E:GraphEdge,N:GraphNode> (Graph<E,N>);
 
@@ -445,6 +458,7 @@ mod tests {
         kind: MyGuard,
     }
     impl GraphNode for MyNode {
+        type P = [f64;2];
         fn default() -> MyNode { MyNode { name: "".to_string(),
                                              position: [0.0,0.0],
                                              base: NodeBase::new(),
