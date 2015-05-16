@@ -83,6 +83,8 @@ pub trait Backend { //: Iterator {
     fn remove(&mut self, n: &Self::Nid) -> Option<Self::N>;
     fn direct(&mut self, from: &Self::Nid, to: &Self::Nid, e: Self::E) -> bool;
     fn undirect(&mut self, from: &Self::Nid, to: &Self::Nid);
+    fn with_nodes<F:Fn(&Self::N)>(&self, f: F);
+    fn with_nodes_mut<F:FnMut(&mut Self::N)>(&mut self, f: F);
 }
 
 //----
@@ -123,6 +125,18 @@ impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
                 is_tracking: false, }
     }
 
+    fn with_nodes<F:Fn(&Self::N)>(&self, f: F) {
+        for (nid,n) in self.nodes.iter() {
+            f(n);
+        }
+    }
+    fn with_nodes_mut<F:FnMut(&mut Self::N)>(&mut self, mut f: F) {
+        for (nid,n) in self.nodes.iter_mut() {
+            f(n);
+        }
+    }
+    
+    
     /// manual accessors
     fn get_node_mut(&mut self, n: &Nid) -> Option<&mut N> {
         self.nodes.get_mut(n)
@@ -592,5 +606,18 @@ mod tests {
         assert!(graph.direct(&nodes[1],&nodes[0],edge_def)); // out to root
         assert!(graph.direct(&nodes[2],&nodes[1],edge_def)); // in to out
         assert!(!graph.direct(&nodes[1],&nodes[2],edge_def)); // out to in
+    }
+
+    #[test]
+    fn test_basic_iter() {
+        let mut graph: Graph<MyEdge,MyNode> = Graph::default();
+        let mut nodes = vec!();
+        for _ in 0..5 {
+            nodes.push(graph.add());
+        }
+
+        
+        graph.with_nodes(|n| {let name = &n.name;} );
+        graph.with_nodes_mut(|n| n.position[0] += 0.0);
     }
 }
