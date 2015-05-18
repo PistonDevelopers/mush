@@ -12,18 +12,19 @@ pub trait GraphEdge: Copy+Clone {
     fn default () -> Self;
 }
 
+use std::ops::Index;
 pub trait GraphNode: Clone+EdgeGuard {
-    type P; // position
+    //type P:Index<usize>; // position
     fn default () -> Self;
     
     fn get_base(&self) -> &NodeBase;
     fn get_base_mut(&mut self) -> &mut NodeBase;
     
     fn get_name(&self) -> &str;
-    fn get_position(&self) -> &Self::P;
+    fn get_position(&self) -> &[f64;2]; //&Self::P;
 
     fn set_name(&mut self, s: &str);
-    fn set_position(&mut self, p: Self::P);
+    fn set_position(&mut self, p: [f64;2]); //Self::P);
 }
 
 /// trait specifying node connection requirements
@@ -39,7 +40,7 @@ pub struct NodeBase {
     edges_from: HashSet<Nid>,
 }
 impl NodeBase {
-    fn new () -> NodeBase {
+    pub fn new () -> NodeBase {
         NodeBase { nid: Uuid::new_v4(),
                    edges_to: HashSet::new(),
                    edges_from: HashSet::new(), }
@@ -63,26 +64,28 @@ impl NodeBase {
     }
     pub fn get_edge(&self,to:&Nid) -> bool {
         self.edges.contains((self.nid,to))
-    }*/
+}*/
+    pub fn get_id(&self) -> Nid { self.nid }
 }
 
 /// iterator iterates over all nodes existing in graph, regardless of edges
 pub trait Backend { //: Iterator {
-    type N;
-    type E;
-    type Nid; //node id
-    type Eid;
+    type N:GraphNode;
+    type E:GraphEdge;
+    type node_id;
+    type edge_id;
     
     
     fn default() -> Self;
-    fn get_node(&self, n: &Self::Nid) -> Option<&Self::N>;
-    fn get_node_mut(&mut self, n: &Nid) -> Option<&mut Self::N>;
-    fn get_edge_mut (&mut self, e: &Eid) -> Option<&mut Self::E>;
-    fn get_edge (&self, e: &Self::Eid) -> Option<&Self::E>;
-    fn add (&mut self) -> Self::Nid;
-    fn remove(&mut self, n: &Self::Nid) -> Option<Self::N>;
-    fn direct(&mut self, from: &Self::Nid, to: &Self::Nid, e: Self::E) -> bool;
-    fn undirect(&mut self, from: &Self::Nid, to: &Self::Nid);
+    fn get_node(&self, n: &Self::node_id) -> Option<&Self::N>;
+    fn get_node_mut(&mut self, n: &Self::node_id) -> Option<&mut Self::N>;
+    fn get_edge_mut (&mut self, e: &Self::edge_id) -> Option<&mut Self::E>;
+    fn get_edge (&self, e: &Self::edge_id) -> Option<&Self::E>;
+    fn add (&mut self) -> Self::node_id; //todo: rename to new_node?
+    fn add_with (&mut self, node: Self::N) -> Self::node_id; //todo: rename to add_node
+    fn remove(&mut self, n: &Self::node_id) -> Option<Self::N>;
+    fn direct(&mut self, from: &Self::node_id, to: &Self::node_id, e: Self::E) -> bool;
+    fn undirect(&mut self, from: &Self::node_id, to: &Self::node_id);
     fn with_nodes<F:Fn(&Self::N)>(&self, f: F);
     fn with_nodes_mut<F:FnMut(&mut Self::N)>(&mut self, f: F);
 }
@@ -115,8 +118,8 @@ pub struct Graph<E:GraphEdge, N:GraphNode> {
 impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
     type N = N;
     type E = E;
-    type Nid = Nid;
-    type Eid = Eid;
+    type node_id = Nid;
+    type edge_id = Eid;
     fn default() -> Graph<E,N> {
         Graph { nodes: HashMap::new(),
                 edges: HashMap::new(),
@@ -125,12 +128,12 @@ impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
                 is_tracking: false, }
     }
 
-    fn with_nodes<F:Fn(&Self::N)>(&self, f: F) {
+    fn with_nodes<F:Fn(&N)>(&self, f: F) {
         for (nid,n) in self.nodes.iter() {
             f(n);
         }
     }
-    fn with_nodes_mut<F:FnMut(&mut Self::N)>(&mut self, mut f: F) {
+    fn with_nodes_mut<F:FnMut(&mut N)>(&mut self, mut f: F) {
         for (nid,n) in self.nodes.iter_mut() {
             f(n);
         }
@@ -158,6 +161,14 @@ impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
         self.nodes.insert(nid,n);
         nid
     }
+
+    fn add_with (&mut self, node: N) -> Nid {
+        let n: N = node;
+        let nid = n.get_base().nid;
+        self.nodes.insert(nid,n);
+        nid
+    }
+    
     fn remove(&mut self, n: &Nid) -> Option<N> {
         self.nodes.remove(n)
     }
@@ -472,7 +483,8 @@ mod tests {
         kind: MyGuard,
     }
     impl GraphNode for MyNode {
-        type P = [f64;2];
+        //type P = [f64;2];
+        
         fn default() -> MyNode { MyNode { name: "".to_string(),
                                              position: [0.0,0.0],
                                              base: NodeBase::new(),

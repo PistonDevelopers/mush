@@ -1,13 +1,13 @@
 extern crate mush;
 
-use mush::{ToolPane, EditableNode, EditableEdge};
+use mush::{GraphNode,GraphEdge,Graph,Backend,UiNode,UiGraph,UiBase,NodeBase,EdgeGuard};
 
 extern crate conrod;
 extern crate glutin_window;
 extern crate opengl_graphics;
 extern crate piston;
 
-use conrod::{Background, Colorable, Theme, Ui, Positionable};
+use conrod::{Background, Colorable, Theme, Ui, Positionable, WidgetId};
 use glutin_window::GlutinWindow;
 use opengl_graphics::{ GlGraphics, OpenGL };
 use opengl_graphics::glyph_cache::GlyphCache;
@@ -15,40 +15,72 @@ use piston::event::*;
 use piston::window::{ WindowSettings, Size };
 use std::path::Path;
 
-extern crate petgraph;
-use self::petgraph::{Graph};
 
-#[derive(Debug, Clone)]
-struct DemoNode {
-    name: String,
-    position: [f64; 2]
+#[derive(Debug,Copy,Clone,PartialEq)]
+struct MyEdge {
+    factor: f64,
+}
+impl GraphEdge for MyEdge {
+    fn default() -> MyEdge { MyEdge { factor:0.0f64, } }
 }
 
-impl EditableNode for DemoNode {
-    fn get_label(&self) -> &str {
-        &self.name
-    }
-    fn get_position(&self) -> [f64; 2] {
-        self.position
-    }
 
-    fn set_position(&mut self, position: [f64; 2]) {
-        self.position = position;
-    }
+#[derive(Debug,Copy,Clone,PartialEq)]
+enum MyGuard {
+    In,
+    Out,
+    Root,
+}
 
-    fn default() -> Self {
-        DemoNode {
-            name: "New Node".to_string(),
-            position: [0.0, 0.0]
+#[derive(Debug,Clone,PartialEq)]
+struct MyNode {
+    name: String,
+    position: [f64;2],
+    base: NodeBase,
+    uibase: UiBase,
+    guard: MyGuard,
+    kind: MyGuard,
+}
+impl GraphNode for MyNode {
+    fn default() -> MyNode { MyNode { name: "".to_string(),
+                                      position: [0.0,0.0],
+                                      base: NodeBase::new(),
+                                      uibase: UiBase::default(),
+                                      guard: MyGuard::In,
+                                      kind: MyGuard::Out }}
+
+    fn get_base(&self) -> &NodeBase { &self.base }
+    fn get_base_mut(&mut self) -> &mut NodeBase { &mut self.base }
+    
+    fn get_name(&self) -> &str { &self.name }
+    fn get_position(&self) -> &[f64;2] { &self.position }
+
+    fn set_name(&mut self, s: &str) { self.name = s.to_string() }
+    fn set_position(&mut self, p: [f64;2]) { self.position = p }
+}
+impl UiNode for MyNode {
+    fn get_ui(&self) -> &UiBase {&self.uibase}
+    fn get_ui_mut(&mut self) -> &mut UiBase {&mut self.uibase}
+}
+impl MyNode {
+    fn new(p: [f64;2], n: String, id: WidgetId) -> MyNode {
+        let mut node = MyNode::default();
+        node.name = n;
+        node.position = p;
+        node.get_ui_mut().set_id(id); //fixme: we don't want to track this manually, toolpane did this for us
+        node
+    }
+}
+
+// setup node-edge guards
+impl EdgeGuard for MyNode {
+    fn guard(&self, other: &Self) -> bool {
+        match (self.guard,other.kind) {
+            (MyGuard::In,MyGuard::Root) => true,
+            (MyGuard::In,MyGuard::Out) => true,
+            _ => false,
         }
     }
-}
-
-#[derive(Debug, Clone)]
-struct DemoEdge;
-
-impl EditableEdge for DemoEdge {
-    fn default() -> Self { DemoEdge }
 }
 
 fn main () {
@@ -65,20 +97,19 @@ fn main () {
        );
 
     // Initialize the graph structure
-    let mut graph = Graph::new();
+    let mut graph = Graph::default();
 
-    let a = graph.add_node(DemoNode { position: [100.0, 100.0], name: "Stuff".to_string() });
-    let b = graph.add_node(DemoNode { position: [100.0, 0.0], name: "Things".to_string() });
-    let c = graph.add_node(DemoNode { position: [0.0, 100.0], name: "Whatever".to_string() });
-    graph.add_edge(a,b, DemoEdge::default());
-    graph.add_edge(b,c, DemoEdge::default());
+    let a = graph.add_with(MyNode::new([100.0, 100.0], "Stuff".to_string(),20));
+    let b = graph.add_with(MyNode::new([100.0, 0.0], "Things".to_string(),25));
+    let c = graph.add_with(MyNode::new([0.0, 100.0], "Whatever".to_string(),30));
+    graph.direct(&a,&b, MyEdge::default());
+    graph.direct(&b,&c, MyEdge::default());
 
     println!("{:?}", graph);
 
-    // Let ui graph allocate UiIds starting at 100. Not sure if this is a good idea..
     let ui_id_offset = 0;
-    let mut tools = ToolPane::new(ui_id_offset, &graph);
-    tools.on_save(|graph| println!("{:?}", graph));
+    //let mut tools = ToolPane::new(ui_id_offset, &graph);
+    //tools.on_save(|graph| println!("{:?}", graph));
 
     let event_iter = window.events().ups(180).max_fps(60);
     let mut gl = GlGraphics::new(opengl);
@@ -96,8 +127,9 @@ fn main () {
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-                tools.build_ui(&mut ui);
-
+                //tools.build_ui(&mut ui);
+                graph.render(&mut ui);
+                
                 // Draw our Ui!
                 ui.draw(gl);
 
