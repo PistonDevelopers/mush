@@ -1,5 +1,3 @@
-#![feature(test)]
-
 extern crate conrod;
 extern crate elmesque;
 extern crate opengl_graphics;
