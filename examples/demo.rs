@@ -123,7 +123,7 @@ fn main () {
         ui.handle_event(&event);
 
         if let Some(args) = event.render_args() {
-            gl.draw(args.viewport(), |_, gl| {
+            gl.draw(args.viewport(), |c, gl| {
 
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
@@ -132,7 +132,7 @@ fn main () {
                 graph.render(&mut ui);
                 
                 // Draw our Ui!
-                ui.draw(gl);
+                ui.draw(c,gl);
 
             });
         }
