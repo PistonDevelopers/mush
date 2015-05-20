@@ -63,7 +63,7 @@ fn test_basic_direct() {
     let mut graph: Graph<MyEdge,MyNode> = Graph::default();
     let mut nodes = vec!();
     for _ in 0..5 {
-        nodes.push(graph.add());
+        nodes.push(graph.new_node());
     }
 
     let edge_def = MyEdge::default();
@@ -76,7 +76,7 @@ fn test_basic_direct() {
     graph.remove(&nodes[2]);
     assert!(!graph.direct(&nodes[4],&nodes[2],edge_def));
     
-    let n6 = graph.add();
+    let n6 = graph.new_node();
     assert!(graph.direct(&n6,&nodes[3],edge_def));
     assert!(graph.direct(&nodes[0],&n6,edge_def));
 }
@@ -88,7 +88,7 @@ fn test_basic_paths() {
     let mut graph: Graph<MyEdge,MyNode> = Graph::default();
     let mut nodes = vec!();
     for _ in 0..5 {
-        nodes.push(graph.add());
+        nodes.push(graph.new_node());
     }
 
     let edge_def = MyEdge::default();
@@ -117,7 +117,7 @@ fn test_basic_cycle() {
     let mut graph: Graph<MyEdge,MyNode> = Graph::default();
     let mut nodes = vec!();
     for _ in 0..5 {
-        nodes.push(graph.add());
+        nodes.push(graph.new_node());
     }
 
     let edge_def = MyEdge::default();
@@ -133,11 +133,11 @@ fn test_basic_cycle() {
     let r = graph.get_cycle(nodes[4]);
     assert_eq!(r.len(),0);
     
-    let n6 = graph.add();
+    let n6 = graph.new_node();
     graph.direct(&n6,&nodes[3],edge_def);
     graph.direct(&nodes[0],&n6,edge_def);
 
-    let n7 = graph.add();
+    let n7 = graph.new_node();
     graph.direct(&n7,&nodes[3],edge_def);
     graph.direct(&nodes[0],&n7,edge_def);
     
@@ -150,7 +150,7 @@ fn test_basic_guard() {
     let mut graph: Graph<MyEdge,MyNode> = Graph::default();
     let mut nodes = vec!();
     for _ in 0..5 {
-        nodes.push(graph.add());
+        nodes.push(graph.new_node());
     }
 
     // for this test: node kind is 'out' by default, and guard is 'in'
@@ -169,7 +169,7 @@ fn test_basic_iter() {
     let mut graph: Graph<MyEdge,MyNode> = Graph::default();
     let mut nodes = vec!();
     for _ in 0..5 {
-        nodes.push(graph.add());
+        nodes.push(graph.new_node());
     }
 
     

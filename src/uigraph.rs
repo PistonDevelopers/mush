@@ -101,7 +101,6 @@ pub trait UiGraph {
 
 impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
     fn render(&mut self, ui: &mut Ui<GlyphCache>) {
-        //it'd be more useful to use Backend::node_id as Associated Type, but this is not possible it seems
         let mut select: (Option<Nid>,Option<Nid>) = (None,None);
         
         self.with_nodes_mut(|n| {

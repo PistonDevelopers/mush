@@ -1,6 +1,8 @@
 extern crate mush;
 
-use mush::{GraphNode,GraphEdge,Graph,Backend,UiNode,UiGraph,UiBase,NodeBase,EdgeGuard};
+use mush::{GraphNode,GraphEdge,Graph,Backend,NodeBase,EdgeGuard};
+use mush::{UiNode,UiGraph,UiBase};
+use mush::{ToolPane};
 
 extern crate conrod;
 extern crate glutin_window;
@@ -98,17 +100,16 @@ fn main () {
 
     // Initialize the graph structure
     let mut graph = Graph::default();
-
-    let a = graph.add_with(MyNode::new([100.0, 100.0], "Stuff".to_string(),20));
-    let b = graph.add_with(MyNode::new([100.0, 0.0], "Things".to_string(),25));
-    let c = graph.add_with(MyNode::new([0.0, 100.0], "Whatever".to_string(),30));
+    let default_node = MyNode::default();
+    let a = graph.add_node(MyNode::new([100.0, 100.0], "Stuff".to_string(),20));
+    let b = graph.add_node(MyNode::new([100.0, 0.0], "Things".to_string(),25));
+    let c = graph.add_node(MyNode::new([0.0, 100.0], "Whatever".to_string(),30));
     graph.direct(&a,&b, MyEdge::default());
     graph.direct(&b,&c, MyEdge::default());
 
     println!("{:?}", graph);
 
-    let ui_id_offset = 0;
-    //let mut tools = ToolPane::new(ui_id_offset, &graph);
+    let mut tools = ToolPane::new(&mut graph);
     //tools.on_save(|graph| println!("{:?}", graph));
 
     let event_iter = window.events().ups(180).max_fps(60);
@@ -127,7 +128,7 @@ fn main () {
                 // Draw the background.
                 Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
 
-                //tools.build_ui(&mut ui);
+                tools.render(&mut ui,&mut graph);
                 graph.render(&mut ui);
                 
                 // Draw our Ui!

@@ -68,26 +68,26 @@ impl NodeBase {
     pub fn get_id(&self) -> Nid { self.nid }
 }
 
-/// iterator iterates over all nodes existing in graph, regardless of edges
-pub trait Backend { //: Iterator {
-    type N:GraphNode;
-    type E:GraphEdge;
+
+pub trait Backend {
+    type Node:GraphNode;
+    type Edge:GraphEdge;
     type node_id;
     type edge_id;
     
     
     fn default() -> Self;
-    fn get_node(&self, n: &Self::node_id) -> Option<&Self::N>;
-    fn get_node_mut(&mut self, n: &Self::node_id) -> Option<&mut Self::N>;
-    fn get_edge_mut (&mut self, e: &Self::edge_id) -> Option<&mut Self::E>;
-    fn get_edge (&self, e: &Self::edge_id) -> Option<&Self::E>;
-    fn add (&mut self) -> Self::node_id; //todo: rename to new_node?
-    fn add_with (&mut self, node: Self::N) -> Self::node_id; //todo: rename to add_node
-    fn remove(&mut self, n: &Self::node_id) -> Option<Self::N>;
-    fn direct(&mut self, from: &Self::node_id, to: &Self::node_id, e: Self::E) -> bool;
+    fn get_node(&self, n: &Self::node_id) -> Option<&Self::Node>;
+    fn get_node_mut(&mut self, n: &Self::node_id) -> Option<&mut Self::Node>;
+    fn get_edge_mut (&mut self, e: &Self::edge_id) -> Option<&mut Self::Edge>;
+    fn get_edge (&self, e: &Self::edge_id) -> Option<&Self::Edge>;
+    fn new_node (&mut self) -> Self::node_id;
+    fn add_node (&mut self, node: Self::Node) -> Self::node_id;
+    fn remove(&mut self, n: &Self::node_id) -> Option<Self::Node>;
+    fn direct(&mut self, from: &Self::node_id, to: &Self::node_id, e: Self::Edge) -> bool;
     fn undirect(&mut self, from: &Self::node_id, to: &Self::node_id);
-    fn with_nodes<F:Fn(&Self::N)>(&self, f: F);
-    fn with_nodes_mut<F:FnMut(&mut Self::N)>(&mut self, f: F);
+    fn with_nodes<F:Fn(&Self::Node)>(&self, f: F);
+    fn with_nodes_mut<F:FnMut(&mut Self::Node)>(&mut self, f: F);
 }
 
 //----
@@ -116,8 +116,8 @@ pub struct Graph<E:GraphEdge, N:GraphNode> {
 }*/
 
 impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
-    type N = N;
-    type E = E;
+    type Node = N;
+    type Edge = E;
     type node_id = Nid;
     type edge_id = Eid;
     fn default() -> Graph<E,N> {
@@ -155,14 +155,14 @@ impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
         self.edges.get(e)
     }
 
-    fn add (&mut self) -> Nid { //todo: maybe_edges fn arg
+    fn new_node (&mut self) -> Nid { //todo: maybe_edges fn arg
         let n: N = GraphNode::default();
         let nid = n.get_base().nid;
         self.nodes.insert(nid,n);
         nid
     }
 
-    fn add_with (&mut self, node: N) -> Nid {
+    fn add_node (&mut self, node: N) -> Nid {
         let n: N = node;
         let nid = n.get_base().nid;
         self.nodes.insert(nid,n);
