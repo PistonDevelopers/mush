@@ -1,56 +1,69 @@
-extern crate petgraph;
+use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable,Widget,WidgetId};
+use conrod::color::{blue, light_grey, orange, dark_grey, red, white};
+use conrod::{Colorable, Label, Split, WidgetMatrix, Floating};
 
-use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable};
 use opengl_graphics::glyph_cache::GlyphCache;
-use petgraph::Graph;
+use std::mem;
 
-use graph::{UiGraph, EditableNode, EditableEdge};
+use ::{Graph,Backend,GraphNode,GraphEdge,UiNode,UiGraph};
 
-pub struct ToolPane<N: EditableNode, E: EditableEdge, F> {
-    ui_graph: UiGraph<N, E>,
-    ui_id_offset: UiId,
-    maybe_on_save: Option<F>
+pub struct ToolPane {
+    next_widget_id: usize,
+    //maybe_on_save: Option<F>
 }
 
-impl<N: EditableNode, E: EditableEdge, F: Fn(Graph<N, E>)> ToolPane<N, E, F> {
+impl ToolPane {
 
-    pub fn new(offset: UiId, source_graph: &Graph<N, E>) -> ToolPane<N, E, F>
+    pub fn new<N:UiNode,G:Backend<Node=N>>(graph: &mut G) -> ToolPane
     {
+        let mut count = 0;
+        graph.with_nodes_mut(|n| {
+            count += 10;
+            n.get_ui_mut().set_id(count); //let's allocate 10 widget ids per node
+        });
         ToolPane {
-            ui_graph: UiGraph::new(source_graph, offset + 2),
-            ui_id_offset: offset,
-            maybe_on_save: None,
+            next_widget_id: count,
+           // maybe_on_save: None,
         }
     }
 
-    pub fn on_save(&mut self, on_save: F) {
-        self.maybe_on_save = Some(on_save);
-    }
+    //pub fn on_save(&mut self, on_save: F) {
+  //      self.maybe_on_save = Some(on_save);
+   // }
 
-    pub fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) {
-        let id_offset = self.ui_id_offset;
+    pub fn render<N:UiNode,G:Backend<Node=N>>(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut G)  {
 
+        // Construct our Canvas tree.
+        Split::new(1).flow_right(&[
+            Split::new(2).color(dark_grey())
+                ]).set(ui);
+        
         // we should use a canvas to place this appropriately
         Button::new()
-            .xy(-1.0*ui.win_w/2.0+50.0,ui.win_h/2.0-20.0)
+            .top_left_of(2)
             .label("Save")
             .dimensions(100.0, 40.0)
-            .react(|| self.save())
-            .set(id_offset, ui);
+            .react(|| {})
+            .set(3, ui);
 
         Button::new()
-            .xy(-1.0*ui.win_w/2.0+150.0, ui.win_h/2.0-20.0)
+            .right(5.0)
             .label("New Node")
             .dimensions(100.0, 40.0)
-            .react(|| self.ui_graph.add_node())
-            .set(id_offset + 1, ui);
-
-        self.ui_graph.build_ui(ui)
+            .react(|| {
+                let mut n = N::default();
+                self.next_widget_id += 10;
+                n.get_ui_mut().set_id(self.next_widget_id);
+                
+                graph.add_node(n);
+            })
+            .set(4, ui);
+     
     }
 
-    pub fn save(&self) where F: Fn(Graph<N, E>) {
-        if let Some(ref on_save) = self.maybe_on_save {
+  //  pub fn save(&self) where F: Fn(Graph<N, E>) {
+        /*if let Some(ref on_save) = self.maybe_on_save {
             on_save(self.ui_graph.as_source_graph());
-        }
-    }
+        }*/
+  //  }
 }

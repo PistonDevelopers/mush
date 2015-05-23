@@ -25,3 +25,6 @@ git = "https://github.com/PistonDevelopers/opengl_graphics.git"
 
 [dependencies.piston]
 git = "https://github.com/PistonDevelopers/piston/"
+
+[dependencies]
+uuid = "0.1"
