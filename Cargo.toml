@@ -8,8 +8,6 @@ license = "MIT"
 name = "demo"
 path = "examples/demo.rs"
 
-[dependencies.petgraph]
-git = "https://github.com/bluss/petulant-avenger-graphlibrary"
 
 [dependencies.conrod]
 git = "https://github.com/PistonDevelopers/conrod"
@@ -23,8 +21,12 @@ git = "https://github.com/PistonDevelopers/glutin_window.git"
 [dependencies.piston2d-opengl_graphics]
 git = "https://github.com/PistonDevelopers/opengl_graphics.git"
 
+[dependencies.piston2d-graphics]
+git = "https://github.com/PistonDevelopers/graphics.git"
+
 [dependencies.piston]
 git = "https://github.com/PistonDevelopers/piston/"
 
 [dependencies]
 uuid = "0.1"
+rustc-serialize = "*"

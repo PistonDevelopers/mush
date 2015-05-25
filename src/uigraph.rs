@@ -1,9 +1,14 @@
-use conrod::{Ui, UiId, Button, Label, Positionable, Labelable, Sizeable,Widget,WidgetId, UserInput, Floating,Colorable};
-use conrod::color::{blue, light_orange, orange, dark_orange, red, white};
+extern crate elmesque;
+
+use conrod::{Ui, UiId, Button, Label,Position,Positionable, Labelable, Sizeable,Widget,WidgetId, UserInput, Floating,Colorable};
+use conrod::color::{blue, light_orange, orange, dark_orange, red, white,light_blue};
 
 use opengl_graphics::glyph_cache::GlyphCache;
 
 use ::{Backend,Graph,GraphNode,GraphEdge,NodeBase,EdgeGuard,Nid,Eid};
+use ::edge::UiEdge;
+use elmesque::{Form, Renderer};
+use elmesque::form::{traced,solid,point_path}; //circle, group, ngon, oval, point_path, rect, solid, text, traced};
 
 pub trait UiNode: GraphNode {
     fn get_ui(&self) -> &UiBase;
@@ -92,6 +97,7 @@ impl UiBase {
     pub fn toggle_collapse(&mut self) { self.collapse = !self.collapse; }
     pub fn toggle_select(&mut self) { self.select = !self.select; }
 
+    pub fn get_id(&self) -> WidgetId { self.ui_id }
     pub fn set_id(&mut self, id: WidgetId) { self.ui_id = id; }
 }
 
@@ -102,6 +108,7 @@ pub trait UiGraph {
 impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
     fn render(&mut self, ui: &mut Ui<GlyphCache>) {
         let mut select: (Option<Nid>,Option<Nid>) = (None,None);
+        let mut edges: Vec<(Nid,Vec<Nid>)> = vec!();
         
         self.with_nodes_mut(|n| {
             let is_select: bool = n.build_ui(ui);
@@ -112,21 +119,38 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                     }
                 }
                 else { select.0 = Some(n.get_base().get_id()); }
-            }});
+            }
+
+            edges.push((n.get_base().get_id(),n.get_base().get_edges()));
+        });
+
+        // build edges
+        for (nid,ev) in edges {
+            let n = self.get_node(&nid).unwrap();
+            for en in ev.iter() {
+                let p = n.get_position();
+                let id = n.get_ui().get_id();
+                if let Some(n2) = self.get_node(&en) {
+                    let p2 = n2.get_position();
+                    UiEdge::new("edge",
+                                Position::Absolute(p[0],p[1]),
+                                Position::Absolute(p2[0],p2[1]))
+                        .set(id +100, ui);
+                }
+            }
+        }
 
         // build new edge
         match select {
             (Some(first),Some(second)) => {
-                let nid = self.get_node(&first).unwrap().get_ui().ui_id;
-
+                //clear node selection 
+                self.get_node_mut(&first).unwrap().get_ui_mut().select = false;
+                self.get_node_mut(&second).unwrap().get_ui_mut().select = false;
+                
                 //todo: prompt for edge data!
                 self.direct(&first,&second,E::default());
-                
-                //clear node selection
-                self.with_nodes_mut(|n| n.get_ui_mut().select = false);
             },
             _ => (),
         }
     }
 }
-
