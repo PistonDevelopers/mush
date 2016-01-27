@@ -4,18 +4,15 @@ use mush::{GraphNode,GraphEdge,Graph,Backend,NodeBase,EdgeGuard};
 use mush::{UiNode,UiGraph,UiBase};
 use mush::{ToolPane};
 
-extern crate conrod;
-extern crate glutin_window;
-extern crate opengl_graphics;
-extern crate piston;
+#[macro_use] extern crate conrod;
+extern crate find_folder;
+extern crate piston_window;
 
-use conrod::{Background, Colorable, Theme, Ui, Positionable, WidgetId};
-use glutin_window::GlutinWindow;
-use opengl_graphics::{ GlGraphics, OpenGL };
-use opengl_graphics::glyph_cache::GlyphCache;
-use piston::event::*;
-use piston::window::{ WindowSettings, Size };
-use std::path::Path;
+use conrod::{Theme, Widget,WidgetId, color, Colorable,Canvas};
+use piston_window::{EventLoop, Glyphs, PistonWindow, UpdateEvent, WindowSettings};
+
+type Ui = conrod::Ui<Glyphs>;
+
 
 
 #[derive(Debug,Copy,Clone,PartialEq)]
@@ -87,55 +84,47 @@ impl EdgeGuard for MyNode {
 
 fn main () {
 
-    let opengl = OpenGL::_3_2;
-    let window = GlutinWindow::new(
-        opengl,
-        WindowSettings::new(
-            "mush -> graph library gui".to_string(),
-            Size { width: 1024, height: 768 }
-            )
-            .exit_on_esc(true)
-            .samples(4)
-       );
+    // Construct the window.
+    let window: PistonWindow =
+        WindowSettings::new("mush -> graph library gui", [1000, 600])
+            .exit_on_esc(true).build().unwrap();
+
+    // Construct our `Ui`.
+    let mut ui = {
+        let assets = find_folder::Search::KidsThenParents(3, 5)
+            .for_folder("fonts").unwrap();
+        let font_path = assets.join("SourceCodePro-Regular.otf");
+        let theme = Theme::default();
+        let glyph_cache = Glyphs::new(&font_path, window.factory.borrow().clone());
+        Ui::new(glyph_cache.unwrap(), theme)
+    };
 
     // Initialize the graph structure
     let mut graph = Graph::default();
-    let default_node = MyNode::default();
-    let a = graph.add_node(MyNode::new([100.0, 100.0], "Stuff".to_string(),20));
-    let b = graph.add_node(MyNode::new([100.0, 0.0], "Things".to_string(),25));
-    let c = graph.add_node(MyNode::new([0.0, 100.0], "Whatever".to_string(),30));
+    let a = graph.add_node(MyNode::new([100.0, 100.0], "Stuff".to_string(),WidgetId(20)));
+    let b = graph.add_node(MyNode::new([100.0, 0.0], "Things".to_string(),WidgetId(25)));
+    let c = graph.add_node(MyNode::new([0.0, 100.0], "Whatever".to_string(),WidgetId(30)));
     graph.direct(&a,&b, MyEdge::default());
     graph.direct(&b,&c, MyEdge::default());
 
-    println!("{:?}", graph);
+    //println!("{:?}", graph);
 
     let mut tools = ToolPane::new(&mut graph);
     //tools.on_save(|graph| println!("{:?}", graph));
 
-    let event_iter = window.events().ups(180).max_fps(60);
-    let mut gl = GlGraphics::new(opengl);
-    let font_path = Path::new("fonts/SourceCodePro-Regular.otf");
-    let theme = Theme::default();
-    let glyph_cache = GlyphCache::new(&font_path).unwrap();
-    let mut ui = &mut Ui::new(glyph_cache, theme);
-
-    for event in event_iter {
+    // Poll events from the window.
+    for event in window.ups(60) {
         ui.handle_event(&event);
-
-        if let Some(args) = event.render_args() {
-            gl.draw(args.viewport(), |c, gl| {
-
-                // Draw the background.
-                Background::new().rgb(0.2, 0.2, 0.2).draw(ui, gl); //this swaps buffers for us
-
-                tools.render(&mut ui,&mut graph);
-                graph.render(&mut ui);
-                
-                // Draw our Ui!
-                ui.draw(c,gl);
-
+        
+        event.update(|_| {
+            ui.set_widgets(|ui|{
+                tools.render(ui,&mut graph);
+                graph.render(ui);
             });
-        }
+        });
+            
+        event.draw_2d(|c, g| {
+            ui.draw(c, g);
+        });
     }
-
 }
