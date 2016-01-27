@@ -118,6 +118,8 @@ fn main () {
         
         event.update(|_| {
             ui.set_widgets(|ui|{
+                Canvas::new().color(color::DARK_CHARCOAL).set(WidgetId(0),ui);
+                
                 tools.render(ui,&mut graph);
                 graph.render(ui);
             });
