@@ -1,11 +1,6 @@
-extern crate graphics;
-
-use conrod::CanvasId;
 use conrod::color::{Color, Colorable};
-use elmesque::Element;
-use self::graphics::character::CharacterCache;
 use conrod::FontSize;
-use conrod::{Depth, Dimensions, HorizontalAlign, Point, Position, Positionable, VerticalAlign,Sizeable};
+use conrod::{Depth, Dimensions, Point, Position, Positionable,Sizeable};
 use conrod::Theme;
 use conrod::{GlyphCache, UserInput};
 use conrod::{Widget,WidgetState};
@@ -18,8 +13,8 @@ pub struct UiEdge<'a> {
     from: Position,
     to: Position,
     style: Style,
-    maybe_h_align: Option<HorizontalAlign>,
-    maybe_v_align: Option<VerticalAlign>,
+    //maybe_h_align: Option<HorizontalAlign>,
+    //maybe_v_align: Option<VerticalAlign>,
 }
 
 /// The styling for a Label's renderable Element.
@@ -44,8 +39,8 @@ impl<'a> UiEdge<'a> {
             from: from,
             to: to,
             style: Style::new(),
-            maybe_h_align: None,
-            maybe_v_align: None,
+            //maybe_h_align: None,
+            //maybe_v_align: None,
         }
     }
 
@@ -91,8 +86,6 @@ impl<'a> Widget for UiEdge<'a> {
         where
             C: CharacterCache,
     {
-        use elmesque::form::{text, collage};
-        use elmesque::text::Text;
         let WidgetState { state: EdgeState(ref string), dim, xy, .. } = *new_state;
         let size = style.font_size(theme);
         let color = style.color(theme);

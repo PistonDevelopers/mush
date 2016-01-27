@@ -1,19 +1,14 @@
-extern crate elmesque;
-
-use conrod::{Ui, UiId, Button, Label,Position,Positionable, Labelable, Sizeable,Widget,WidgetId, UserInput, Floating,Colorable};
-use conrod::color::{blue, light_orange, orange, dark_orange, red, white,light_blue};
-
-use opengl_graphics::glyph_cache::GlyphCache;
-
+use conrod::{Button,Position,Positionable, Text, Sizeable,Widget,WidgetId, UserInput,Canvas,Colorable,color,Labelable};
+use piston_window::Glyphs;
 use ::{Backend,Graph,GraphNode,GraphEdge,NodeBase,EdgeGuard,Nid,Eid};
-use ::edge::UiEdge;
-use elmesque::{Form, Renderer};
-use elmesque::form::{traced,solid,point_path}; //circle, group, ngon, oval, point_path, rect, solid, text, traced};
+
+pub type Ui = ::conrod::Ui<Glyphs>;
+
 
 pub trait UiNode: GraphNode {
     fn get_ui(&self) -> &UiBase;
     fn get_ui_mut(&mut self) -> &mut UiBase;
-    fn build_ui(&mut self, ui: &mut Ui<GlyphCache>) -> bool {
+    fn build_ui(&mut self, ui: &mut Ui) -> bool {
 
         if self.get_ui().destroy { return false }
 
@@ -26,15 +21,18 @@ pub trait UiNode: GraphNode {
 
         let position = self.get_position().clone();
 
-        let mut color = white();
-        if self.get_ui().select { color=red(); }
+        let mut color = color::WHITE;
+        if self.get_ui().select { color=color::RED; }
         
         //floating canvas where our node data resides
-        Floating::new()
-            .label(self.get_name())
-            .xy(position[0], position[1])
-            .height(canvas_height) //I think floating canvas is missing dynamic dimensions, so this only works the once and cache is then set
-            .color(blue())
+        Canvas::new()
+            .floating(true)
+            .title_bar(self.get_name())
+            .xy([position[0], position[1]])
+            .h(canvas_height)
+            // TODO: see if this is still true
+            //I think floating canvas is missing dynamic dimensions, so this only works the once and cache is then set
+            .color(color::BLUE)
             .label_color(color)
             .set(ui_id_start, ui);
 
@@ -46,7 +44,7 @@ pub trait UiNode: GraphNode {
         Button::new()
             .top_right_of(ui_id_start) //todo: shift up ~5.0
             .label("x")
-            .dimensions(20.0,20.0)
+            .w_h(20.0,20.0)
             .react(|| self.get_ui_mut().destroy = true)
             .set(ui_id_start + 1, ui);
 
@@ -54,7 +52,7 @@ pub trait UiNode: GraphNode {
         Button::new()
             .left(5.0)
             .label(cl)
-            .dimensions(20.0,20.0)
+            .w_h(20.0,20.0)
             .react(|| self.get_ui_mut().toggle_collapse())
             .set(ui_id_start + 2, ui);
 
@@ -62,13 +60,13 @@ pub trait UiNode: GraphNode {
         Button::new()
             .top_left_of(ui_id_start) //todo: shift up ~5.0
             .label("o")
-            .dimensions(20.0,20.0)
+            .w_h(20.0,20.0)
             .react(|| self.get_ui_mut().toggle_select())
             .set(ui_id_start + 3, ui);
 
         //todo: collapse floating canvas above!
         if !self.get_ui().collapse {
-            Label::new("Node Data")
+            Text::new("Node Data")
                 .middle_of(ui_id_start)
                 .set(ui_id_start + 4, ui);
         }
@@ -87,7 +85,7 @@ pub struct UiBase {
 
 impl UiBase {
     pub fn default() -> UiBase {
-        UiBase { ui_id: 0,
+        UiBase { ui_id: WidgetId(0),
                  select: false,
                  collapse: false,
                  destroy: false,
@@ -102,11 +100,11 @@ impl UiBase {
 }
 
 pub trait UiGraph {
-    fn render(&mut self, ui: &mut Ui<GlyphCache>);
+    fn render(&mut self, ui: &mut Ui);
 }
 
 impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
-    fn render(&mut self, ui: &mut Ui<GlyphCache>) {
+    fn render(&mut self, ui: &mut Ui) {
         let mut select: (Option<Nid>,Option<Nid>) = (None,None);
         let mut edges: Vec<(Nid,Vec<Nid>)> = vec!();
         
@@ -132,10 +130,11 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                 let id = n.get_ui().get_id();
                 if let Some(n2) = self.get_node(&en) {
                     let p2 = n2.get_position();
-                    UiEdge::new("edge",
-                                Position::Absolute(p[0],p[1]),
-                                Position::Absolute(p2[0],p2[1]))
-                        .set(id +100, ui);
+                    // FIXME: uiedge widget is being removed, needs replacement here
+                    //UiEdge::new("edge",
+                    //            Position::Absolute(p[0],p[1]),
+                    //            Position::Absolute(p2[0],p2[1]))
+                     //   .set(id +100, ui);
                 }
             }
         }

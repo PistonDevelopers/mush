@@ -1,11 +1,10 @@
-use conrod::{Ui, UiId, Button, Positionable, Sizeable, Labelable,Widget,WidgetId};
-use conrod::color::{blue, light_grey, orange, dark_grey, red, white};
-use conrod::{Colorable, Label, Split, WidgetMatrix, Floating};
-
-use opengl_graphics::glyph_cache::GlyphCache;
-use std::mem;
+use conrod::{Button, Positionable, Sizeable, Labelable,Widget,WidgetId,color};
+use conrod::{Colorable, WidgetMatrix, Floating,Canvas};
 
 use ::{Graph,Backend,GraphNode,GraphEdge,UiNode,UiGraph};
+
+use piston_window::Glyphs;
+pub type Ui = ::conrod::Ui<Glyphs>;
 
 pub struct ToolPane {
     next_widget_id: usize,
@@ -16,10 +15,10 @@ impl ToolPane {
 
     pub fn new<N:UiNode,G:Backend<Node=N>>(graph: &mut G) -> ToolPane
     {
-        let mut count = 0;
+        let mut count = 10;
         graph.with_nodes_mut(|n| {
             count += 10;
-            n.get_ui_mut().set_id(count); //let's allocate 10 widget ids per node
+            n.get_ui_mut().set_id(WidgetId(count)); //let's allocate 10 widget ids per node
         });
         ToolPane {
             next_widget_id: count,
@@ -31,33 +30,31 @@ impl ToolPane {
   //      self.maybe_on_save = Some(on_save);
    // }
 
-    pub fn render<N:UiNode,G:Backend<Node=N>>(&mut self, ui: &mut Ui<GlyphCache>, graph: &mut G)  {
-
-        // Construct our Canvas tree.
-        Split::new(1).flow_right(&[
-            Split::new(2).color(dark_grey())
-                ]).set(ui);
+    pub fn render<N:UiNode,G:Backend<Node=N>>(&mut self, ui: &mut Ui, graph: &mut G)  {
+        Canvas::new().flow_right(&[
+            (WidgetId(2),Canvas::new().color(color::DARK_GRAY)),
+               ]).set(WidgetId(1),ui);
         
         // we should use a canvas to place this appropriately
         Button::new()
-            .top_left_of(2)
+            .top_left_of(WidgetId(2))
             .label("Save")
-            .dimensions(100.0, 40.0)
+            .w_h(100.0, 40.0)
             .react(|| {})
-            .set(3, ui);
+            .set(WidgetId(3), ui);
 
         Button::new()
             .right(5.0)
             .label("New Node")
-            .dimensions(100.0, 40.0)
+            .w_h(100.0, 40.0)
             .react(|| {
                 let mut n = N::default();
                 self.next_widget_id += 10;
-                n.get_ui_mut().set_id(self.next_widget_id);
+                n.get_ui_mut().set_id(WidgetId(self.next_widget_id));
                 
                 graph.add_node(n);
             })
-            .set(4, ui);
+            .set(WidgetId(4), ui);
      
     }
 

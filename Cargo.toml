@@ -9,13 +9,9 @@ name = "demo"
 path = "examples/demo.rs"
 
 
-
 [dependencies]
 uuid = "0.1"
-rustc-serialize = "*"
+rustc-serialize = "0.3.16"
 conrod = "*"
-elmesque = "*"
-pistoncore-glutin_window = "0.1.0"
-piston2d-opengl_graphics = "*"
-piston2d-graphics = "*"
-piston = "*"
+find_folder = "0.3.0"
+piston_window = "0.33.0"
