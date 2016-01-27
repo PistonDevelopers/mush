@@ -15,10 +15,13 @@ impl ToolPane {
 
     pub fn new<N:UiNode,G:Backend<Node=N>>(graph: &mut G) -> ToolPane
     {
-        let mut count = 10;
+        //let's allocate 10 widget ids per node plus 10 connects
+        let connects = 10;
+        let mut count = 10+connects;
+        
         graph.with_nodes_mut(|n| {
-            count += 10;
-            n.get_ui_mut().set_id(WidgetId(count)); //let's allocate 10 widget ids per node
+            count += 10+connects;
+            n.get_ui_mut().set_id(WidgetId(count)); 
         });
         ToolPane {
             next_widget_id: count,

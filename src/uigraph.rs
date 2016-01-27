@@ -1,4 +1,4 @@
-use conrod::{Button,Position,Positionable, Text, Sizeable,Widget,WidgetId, UserInput,Canvas,Colorable,color,Labelable,Line};
+use conrod::{Button,Position,Positionable, Text, Sizeable,Widget,WidgetId, UserInput,Canvas,Colorable,color,Labelable,Line,Circle};
 use piston_window::Glyphs;
 use ::{Backend,Graph,GraphNode,GraphEdge,NodeBase,EdgeGuard,Nid,Eid};
 
@@ -135,13 +135,24 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
         });
 
         // build edges
-        for (nid,ev) in edges {
+        for (j,&(ref nid,ref ev)) in edges.iter().enumerate() {
             let n = self.get_node(&nid).unwrap();
+            let id = n.get_ui().get_id().0 * 20; //allot 20 spaces per node
+            let id = WidgetId(id + 1000); // place in 1k range
+            let mut pos = *n.get_position();
+            pos[1] = pos[1] + j as f64+12.;
+            Circle::fill_with(10.,color::LIGHT_BLUE)
+                .xy(pos)
+                .set(id+1, ui);
+            
             for en in ev.iter() {
-                let id = n.get_ui().get_id();
+                
                 if let Some(n2) = self.get_node(&en) {
                     Line::abs(*n.get_position(), *n2.get_position())
-                        .set(id+1000, ui);
+                        .set(id+2, ui);
+                    Circle::fill_with(10.,color::ORANGE)
+                        .xy(*n2.get_position())
+                        .set(id+3, ui);
                 }
             }
         }
