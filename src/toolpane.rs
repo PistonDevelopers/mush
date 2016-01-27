@@ -31,15 +31,21 @@ impl ToolPane {
    // }
 
     pub fn render<N:UiNode,G:Backend<Node=N>>(&mut self, ui: &mut Ui, graph: &mut G)  {
-        Canvas::new().flow_right(&[
-            (WidgetId(2),Canvas::new().color(color::DARK_GRAY)),
-               ]).set(WidgetId(1),ui);
+        let header_h = 80.;
+        Canvas::new()
+            .floating(true)
+            .title_bar("Some Project Name") // TODO: derive this for projects
+            .xy([0.,(ui.win_h/2.) - (header_h/2.)])
+            .h(header_h)
+            .color(color::DARK_GRAY)
+            .label_color(color::DARK_CHARCOAL)
+            .set(WidgetId(1), ui);
         
-        // we should use a canvas to place this appropriately
         Button::new()
-            .top_left_of(WidgetId(2))
+            .top_left_of(WidgetId(1))
             .label("Save")
             .w_h(100.0, 40.0)
+            .label_color(color::LIGHT_GRAY) //light grey, does nothing right now
             .react(|| {})
             .set(WidgetId(3), ui);
 
