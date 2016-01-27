@@ -59,12 +59,10 @@ impl NodeBase {
     fn undirect_from (&mut self, from:&Nid) {
         self.edges_from.remove(from);
     }
-   /* pub fn has_edge_from(&self,from:&Nid) -> bool {
-        self.edges_from.contains((from,self.nid))
+    pub fn get_edges(&self) -> Vec<Nid> {
+        self.edges_to.iter().map(|nid| *nid).collect()
     }
-    pub fn get_edge(&self,to:&Nid) -> bool {
-        self.edges.contains((self.nid,to))
-}*/
+    
     pub fn get_id(&self) -> Nid { self.nid }
 }
 
