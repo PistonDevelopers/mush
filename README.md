@@ -14,3 +14,7 @@ on the radar:
 - export/import to json via serialize
 - cyclic warnings
 - cyclic prevention via branch termination requirements
+
+---
+
+![screenshot](screenshot.png?raw=true)
