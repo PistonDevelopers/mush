@@ -126,7 +126,10 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                     else { select.0 = Some(base.get_id()); }
                 }
 
-                edges.push((base.get_id(),base.get_edges()));
+                let ev = base.get_edges();
+                if ev.len() > 0 {
+                    edges.push((base.get_id(),ev));
+                }
             }
 
             if let Some(coord) = ui.xy_of(n.get_ui().get_id()) {
@@ -145,14 +148,14 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                 .xy(pos)
                 .set(id+1, ui);
             
-            for en in ev.iter() {
-                
+            for (k,en) in ev.iter().enumerate() {
+                let k = k + 1;
                 if let Some(n2) = self.get_node(&en) {
                     Line::abs(*n.get_position(), *n2.get_position())
-                        .set(id+2, ui);
+                        .set(id+2*k, ui);
                     Circle::fill_with(10.,color::ORANGE)
                         .xy(*n2.get_position())
-                        .set(id+3, ui);
+                        .set(id+3*k, ui);
                 }
             }
         }
