@@ -8,9 +8,9 @@ pub type Ui = ::conrod::Ui<Glyphs>;
 pub trait UiNode: GraphNode {
     fn get_ui(&self) -> &UiBase;
     fn get_ui_mut(&mut self) -> &mut UiBase;
-    fn build_ui(&mut self, ui: &mut Ui) -> bool {
+    fn build_ui(&mut self, ui: &mut Ui) {
 
-        if self.get_ui().destroy { return false }
+        if self.get_ui().destroy { return }
 
         let mut canvas_height = self.get_ui().height;
         let mut cl = "-"; //canvas label
@@ -70,8 +70,6 @@ pub trait UiNode: GraphNode {
                 .middle_of(ui_id_start)
                 .set(ui_id_start + 4, ui);
         }
-
-        self.get_ui().select
     }
 }
 
@@ -113,7 +111,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
         let mut edges: Vec<(Nid,Vec<Nid>)> = vec!();
 
         self.with_nodes_mut(|n| {
-            let is_select: bool = n.build_ui(ui);
+            let is_select = n.get_ui().select;
             
             {
                 let base = n.get_base();
@@ -137,7 +135,32 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             }
         });
 
+        let socket_id_out = 1;
+        let line_id = 2;
+        let socket_id_in = 3;
+        
         // build edges
+        for &(ref nid,ref ev) in edges.iter() {
+            let n = self.get_node(&nid).unwrap();
+            let id = n.get_ui().get_id().0 * 20; //allot 20 spaces per node
+            let id = WidgetId(id + 1000); // place in 1k range
+            
+            for (k,en) in ev.iter().enumerate() {
+                let k = k + 1;
+                if let Some(n2) = self.get_node(&en) {
+                    Line::abs(*n.get_position(), *n2.get_position())
+                        .set(id+line_id*k, ui);
+                }
+            }
+        }
+
+        self.with_nodes_mut(|n| {
+            n.build_ui(ui);
+        });
+
+        // build sockets
+        // NOTE: this duplication from 'build_edges' should be fixed
+        // only way I could figure out proper draw order
         for (j,&(ref nid,ref ev)) in edges.iter().enumerate() {
             let n = self.get_node(&nid).unwrap();
             let id = n.get_ui().get_id().0 * 20; //allot 20 spaces per node
@@ -146,16 +169,14 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             pos[1] = pos[1] + j as f64+12.;
             Circle::fill_with(10.,color::LIGHT_BLUE)
                 .xy(pos)
-                .set(id+1, ui);
+                .set(id+socket_id_out, ui);
             
             for (k,en) in ev.iter().enumerate() {
                 let k = k + 1;
                 if let Some(n2) = self.get_node(&en) {
-                    Line::abs(*n.get_position(), *n2.get_position())
-                        .set(id+2*k, ui);
                     Circle::fill_with(10.,color::ORANGE)
                         .xy(*n2.get_position())
-                        .set(id+3*k, ui);
+                        .set(id+socket_id_in*k, ui);
                 }
             }
         }
