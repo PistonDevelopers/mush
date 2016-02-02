@@ -7,13 +7,14 @@ use piston_window::Glyphs;
 pub type Ui = ::conrod::Ui<Glyphs>;
 
 pub struct ToolPane {
+    name: String,
     next_widget_id: usize,
     //maybe_on_save: Option<F>
 }
 
 impl ToolPane {
 
-    pub fn new<N:UiNode,G:Backend<Node=N>>(graph: &mut G) -> ToolPane
+    pub fn new<N:UiNode,G:Backend<Node=N>>(graph: &mut G,name:String) -> ToolPane
     {
         //let's allocate 10 widget ids per node plus 10 connects
         let connects = 10;
@@ -24,6 +25,7 @@ impl ToolPane {
             n.get_ui_mut().set_id(WidgetId(count)); 
         });
         ToolPane {
+            name: name,
             next_widget_id: count,
            // maybe_on_save: None,
         }
@@ -37,7 +39,7 @@ impl ToolPane {
         let header_h = 80.;
         Canvas::new()
             .floating(true)
-            .title_bar("Some Project Name") // TODO: derive this for projects
+            .title_bar(&self.name) // TODO: derive this for projects
             .xy([0.,(ui.win_h/2.) - (header_h/2.)])
             .h(header_h)
             .color(color::DARK_GRAY)

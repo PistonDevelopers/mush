@@ -110,7 +110,7 @@ fn main () {
 
     //println!("{:?}", graph);
 
-    let mut tools = ToolPane::new(&mut graph);
+    let mut tools = ToolPane::new(&mut graph,"Some Project Name".to_string());
     //tools.on_save(|graph| println!("{:?}", graph));
 
     // Poll events from the window.
