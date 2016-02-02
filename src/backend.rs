@@ -65,7 +65,7 @@ impl NodeBase {
     pub fn get_id(&self) -> Nid { self.nid }
 }
 
-
+/// Backend trait that can be extended for other graph libraries
 pub trait Backend {
     type Node:GraphNode;
     type Edge:GraphEdge;
