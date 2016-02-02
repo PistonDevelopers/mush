@@ -24,6 +24,7 @@ impl GraphEdge for MyEdge {
 }
 
 
+#[allow(dead_code)]
 #[derive(Debug,Copy,Clone,PartialEq)]
 enum MyGuard {
     In,

@@ -12,7 +12,6 @@ pub trait GraphEdge: Copy+Clone {
     fn default () -> Self;
 }
 
-use std::ops::Index;
 pub trait GraphNode: Clone+EdgeGuard {
     //type P:Index<usize>; // position
     fn default () -> Self;
@@ -127,12 +126,12 @@ impl<E:GraphEdge, N:GraphNode> Backend for Graph<E,N> {
     }
 
     fn with_nodes<F:Fn(&N)>(&self, f: F) {
-        for (nid,n) in self.nodes.iter() {
+        for (_,n) in self.nodes.iter() {
             f(n);
         }
     }
     fn with_nodes_mut<F:FnMut(&mut N)>(&mut self, mut f: F) {
-        for (nid,n) in self.nodes.iter_mut() {
+        for (_,n) in self.nodes.iter_mut() {
             f(n);
         }
     }
@@ -374,7 +373,7 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
         let mut result = vec!();
         let mut visited = HashSet::new();
         
-        for (n,d) in &self.nodes {
+        for (n,_) in &self.nodes {
             if !visited.contains(n) {
                 if let Some(r) = self.get_path(GraphSearch::Depth(*n,None)) {
                     for _n in r.iter() { visited.insert(*_n); }
@@ -397,9 +396,12 @@ impl<E:GraphEdge, N:GraphNode> Graph<E,N> {
         None
     }
 
+    // TODO: implement me!
+    #[allow(dead_code)]
     fn is_connected() -> bool { false }
+    #[allow(dead_code)]
     fn is_complete() -> bool { false }
-    
+    #[allow(dead_code)]
     fn get_path_shortest(&self) -> bool {
         if !self.is_weighted { false } //must be weighted
         else { false } //todo: use bfs
@@ -440,7 +442,7 @@ impl<E:GraphEdge, N:GraphNode> GraphBuilder<E,N> {
         self.0.is_tracking = t;
         self
     }
-    pub fn build(mut self) -> Graph<E,N> {
+    pub fn build(self) -> Graph<E,N> {
         self.0
     }
 }

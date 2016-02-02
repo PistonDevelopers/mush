@@ -1,7 +1,7 @@
 use conrod::{Button, Positionable, Sizeable, Labelable,Widget,WidgetId,color};
-use conrod::{Colorable, WidgetMatrix, Floating,Canvas};
+use conrod::{Colorable,Canvas};
 
-use ::{Graph,Backend,GraphNode,GraphEdge,UiNode,UiGraph};
+use ::{Backend,GraphNode,GraphEdge,UiNode};
 
 use piston_window::Glyphs;
 pub type Ui = ::conrod::Ui<Glyphs>;
