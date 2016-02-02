@@ -164,7 +164,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                 if let Some(n2) = self.get_node(&en) {
                     let mut to_pos = *n2.get_position();
                     if !n2.get_ui().collapse {
-                        to_pos[1] -= k as f64+socket_offset;
+                        to_pos[1] -= k as f64 -1. +socket_offset;
                     }
                     to_pos[0] += n2.get_ui().width/2.;
                     
@@ -203,7 +203,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                 if let Some(n2) = self.get_node(&en) {
                     let mut to_pos = *n2.get_position();
                     if !n2.get_ui().collapse {
-                        to_pos[1] -= k as f64+socket_offset;
+                        to_pos[1] -= k as f64 -1. +socket_offset;
                     }
                     to_pos[0] += n2.get_ui().width/2.;
                     
