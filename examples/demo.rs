@@ -102,9 +102,9 @@ fn main () {
 
     // Initialize the graph structure
     let mut graph = Graph::default();
-    let a = graph.add_node(MyNode::new([200.0, 200.0], "Stuff".to_string(),WidgetId(50)));
-    let b = graph.add_node(MyNode::new([50.0, 0.0], "Things".to_string(),WidgetId(85)));
-    let c = graph.add_node(MyNode::new([0.0, 100.0], "Whatever".to_string(),WidgetId(120)));
+    let a = graph.add_node(MyNode::new([-200.0, -200.0], "Stuff".to_string(),WidgetId(50)));
+    let b = graph.add_node(MyNode::new([50.0, 100.0], "Things".to_string(),WidgetId(85)));
+    let c = graph.add_node(MyNode::new([100.0, -100.0], "Whatever".to_string(),WidgetId(120)));
     graph.direct(&a,&b, MyEdge::default());
     graph.direct(&b,&c, MyEdge::default());
 
