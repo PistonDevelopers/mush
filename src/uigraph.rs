@@ -109,7 +109,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
     fn render(&mut self, ui: &mut Ui) {
         let mut select: (Option<Nid>,Option<Nid>) = (None,None);
         let mut edges: Vec<(Nid,Vec<Nid>)> = vec!();
-
+        
         self.with_nodes_mut(|n| {
             let is_select = n.get_ui().select;
             
@@ -138,17 +138,37 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
         let socket_id_out = 1;
         let line_id = 2;
         let socket_id_in = 3;
+
+        let socket_offset = 20.; //20px offset
         
         // build edges
+        // NOTE: these edges represent forward-edges only
+        // TODO: break out socket and line positioning into some sort of method
         for &(ref nid,ref ev) in edges.iter() {
             let n = self.get_node(&nid).unwrap();
-            let id = n.get_ui().get_id().0 * 20; //allot 20 spaces per node
+            let nui = n.get_ui();
+            
+            let id = nui.get_id().0 * 20; //allot 20 spaces per node
             let id = WidgetId(id + 1000); // place in 1k range
+
+            let mut from_pos = *n.get_position();
             
             for (k,en) in ev.iter().enumerate() {
+                if !nui.collapse {
+                    from_pos[1] -= k as f64+socket_offset;
+                }
+                from_pos[0] -= nui.width/2.;
+                
                 let k = k + 1;
+                
                 if let Some(n2) = self.get_node(&en) {
-                    Line::abs(*n.get_position(), *n2.get_position())
+                    let mut to_pos = *n2.get_position();
+                    if !n2.get_ui().collapse {
+                        to_pos[1] -= k as f64+socket_offset;
+                    }
+                    to_pos[0] += n2.get_ui().width/2.;
+                    
+                    Line::abs(from_pos, to_pos)
                         .set(id+line_id*k, ui);
                 }
             }
@@ -163,19 +183,32 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
         // only way I could figure out proper draw order
         for (j,&(ref nid,ref ev)) in edges.iter().enumerate() {
             let n = self.get_node(&nid).unwrap();
-            let id = n.get_ui().get_id().0 * 20; //allot 20 spaces per node
+            let nui = n.get_ui();
+
+            let id = nui.get_id().0 * 20; //allot 20 spaces per node
             let id = WidgetId(id + 1000); // place in 1k range
-            let mut pos = *n.get_position();
-            pos[1] = pos[1] + j as f64+12.;
+
+            let mut from_pos = *n.get_position();
+            if !nui.collapse {
+                from_pos[1] -= j as f64+socket_offset;
+            }
+            from_pos[0] -= nui.width/2.;
+            
             Circle::fill_with(10.,color::LIGHT_BLUE)
-                .xy(pos)
+                .xy(from_pos)
                 .set(id+socket_id_out, ui);
             
             for (k,en) in ev.iter().enumerate() {
                 let k = k + 1;
                 if let Some(n2) = self.get_node(&en) {
+                    let mut to_pos = *n2.get_position();
+                    if !n2.get_ui().collapse {
+                        to_pos[1] -= k as f64+socket_offset;
+                    }
+                    to_pos[0] += n2.get_ui().width/2.;
+                    
                     Circle::fill_with(10.,color::ORANGE)
-                        .xy(*n2.get_position())
+                        .xy(to_pos)
                         .set(id+socket_id_in*k, ui);
                 }
             }
