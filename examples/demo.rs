@@ -63,6 +63,7 @@ impl UiNode for MyNode {
     fn get_ui_mut(&mut self) -> &mut UiBase {&mut self.uibase}
 }
 impl MyNode {
+    #[allow(dead_code)]
     fn new(p: [f64;2], n: String, id: WidgetId) -> MyNode {
         let mut node = MyNode::default();
         node.name = n;
@@ -110,7 +111,7 @@ fn main () {
 
     graph.direct(&a,&b, MyEdge::default());
     graph.direct(&b,&c, MyEdge::default());
-    graph.direct(&a,&c, MyEdge::default());
+    //graph.direct(&a,&c, MyEdge::default());
     
     // Poll events from the window.
     for event in window.ups(60) {

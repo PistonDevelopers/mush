@@ -154,7 +154,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             let n = self.get_node(&nid).unwrap();
             let nui = n.get_ui();
             
-            let id = nui.get_id().0 * 100; //allotment per node
+            let id = nui.get_id().0 * ::MAX_NODES;
 
             let mut from_pos = *n.get_position();
             
@@ -177,7 +177,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                     to_pos[0] += n2.get_ui().width/2.;
                     
                     Line::abs(from_pos, to_pos)
-                        .set(WidgetId(id*line_id*k*40), ui);
+                        .set(WidgetId(id*line_id*k), ui);
                 }
             }
         }
@@ -193,7 +193,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             let n = self.get_node(&nid).unwrap();
             let nui = n.get_ui();
 
-            let id = nui.get_id().0 * 100;
+            let id = nui.get_id().0 * ::MAX_NODES;
 
             let mut from_pos = *n.get_position();
             from_pos[0] -= nui.width/2.;
@@ -209,7 +209,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
 
                 Circle::fill_with(socket_size,color::LIGHT_BLUE)
                     .xy(from_pos)
-                    .set(WidgetId(id*socket_id_out*(j+k)*10), ui);
+                    .set(WidgetId((id+j+k)*socket_id_out), ui);
                 
                 if let Some(n2) = self.get_node(&en) {
                     let mut to_pos = *n2.get_position();
@@ -220,7 +220,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                     
                     Circle::fill_with(socket_size,color::ORANGE)
                         .xy(to_pos)
-                        .set(WidgetId(id*socket_id_in*(j+k)*20), ui);
+                        .set(WidgetId((id+j+k)*socket_id_in), ui);
                 }
             }
         }
