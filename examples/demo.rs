@@ -111,7 +111,7 @@ fn main () {
 
     graph.direct(&a,&b, MyEdge::default());
     graph.direct(&b,&c, MyEdge::default());
-    //graph.direct(&a,&c, MyEdge::default());
+    graph.direct(&a,&c, MyEdge::default());
     
     // Poll events from the window.
     for event in window.ups(60) {

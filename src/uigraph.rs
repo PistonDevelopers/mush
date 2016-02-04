@@ -154,7 +154,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             let n = self.get_node(&nid).unwrap();
             let nui = n.get_ui();
             
-            let id = nui.get_id().0 * ::MAX_NODES;
+            let id = nui.get_id().0 * ::MAX_NODES * (::MAX_CONN_IN+::MAX_CONN_OUT) +1;
 
             let mut from_pos = *n.get_position();
             
@@ -193,7 +193,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             let n = self.get_node(&nid).unwrap();
             let nui = n.get_ui();
 
-            let id = nui.get_id().0 * ::MAX_NODES;
+            let id = nui.get_id().0 * ::MAX_NODES + 1;
 
             let mut from_pos = *n.get_position();
             from_pos[0] -= nui.width/2.;
