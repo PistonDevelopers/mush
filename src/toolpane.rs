@@ -19,7 +19,7 @@ impl ToolPane {
         let mut count = 0;
         
         graph.with_nodes_mut(|n| {
-            count += ::MAX_CONN_OUT+::MAX_CONN_IN + 1;
+            count += (::MAX_CONN*3) + 10;
             n.get_ui_mut().set_id(WidgetId(count)); 
         });
         ToolPane {
@@ -67,7 +67,7 @@ impl ToolPane {
                                                 -> G::node_id
     {
         let mut n = N::default();
-        self.next_widget_id += ::MAX_CONN_OUT+::MAX_CONN_IN + 1;
+        self.next_widget_id += (::MAX_CONN*3) + 10;
         n.get_ui_mut().set_id(WidgetId(self.next_widget_id));
         
         graph.add_node(n)

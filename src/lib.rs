@@ -13,5 +13,4 @@ pub mod backend;
 pub mod uigraph;
 
 pub const MAX_NODES: usize = 1000;
-pub const MAX_CONN_OUT: usize = 100;
-pub const MAX_CONN_IN: usize = 100;
+pub const MAX_CONN: usize = 50; // per node
