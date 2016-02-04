@@ -218,9 +218,14 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                     }
                     to_pos[0] += n2.get_ui().width/2.;
                     
+                    let id2 = n2.get_ui().get_id().0 + ::MAX_NODES + 1;
+                    let id2 = WidgetId((id2+j+k)*socket_id_in + ::MAX_CONN_IN);
+                    
                     Circle::fill_with(socket_size,color::ORANGE)
                         .xy(to_pos)
-                        .set(WidgetId((id+j+k)*socket_id_in), ui);
+                        .set(id2, ui);
+
+                    println!("{:?}",id2);
                 }
             }
         }
