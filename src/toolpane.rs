@@ -13,15 +13,13 @@ pub struct ToolPane {
 }
 
 impl ToolPane {
-
     pub fn new<N:UiNode,G:Backend<Node=N>>(graph: &mut G,name:String) -> ToolPane
     {
-        //let's allocate 10 widget ids per node plus 10 connects
-        let connects = 10;
-        let mut count = 10+connects;
+        //let's allocate n widget ids per node plus n connects
+        let mut count = 0;
         
         graph.with_nodes_mut(|n| {
-            count += 10+connects;
+            count += ::MAX_CONN_OUT+::MAX_CONN_IN;
             n.get_ui_mut().set_id(WidgetId(count)); 
         });
         ToolPane {
@@ -59,14 +57,20 @@ impl ToolPane {
             .label("New Node")
             .w_h(100.0, 40.0)
             .react(|| {
-                let mut n = N::default();
-                self.next_widget_id += 10;
-                n.get_ui_mut().set_id(WidgetId(self.next_widget_id));
-                
-                graph.add_node(n);
+                self.new_node(graph);
             })
             .set(WidgetId(4), ui);
      
+    }
+
+    pub fn new_node<N:UiNode,G:Backend<Node=N>> (&mut self, graph: &mut G)
+                                                -> G::node_id
+    {
+        let mut n = N::default();
+        self.next_widget_id += ::MAX_CONN_OUT+::MAX_CONN_IN;
+        n.get_ui_mut().set_id(WidgetId(self.next_widget_id));
+        
+        graph.add_node(n)
     }
 
   //  pub fn save(&self) where F: Fn(Graph<N, E>) {
