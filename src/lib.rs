@@ -11,3 +11,6 @@ pub use uigraph::{UiGraph,UiBase,UiNode};
 pub mod toolpane;
 pub mod backend;
 pub mod uigraph;
+
+pub const MAX_NODES: usize = 1000;
+pub const MAX_CONN: usize = 50; // per node

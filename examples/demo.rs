@@ -63,6 +63,7 @@ impl UiNode for MyNode {
     fn get_ui_mut(&mut self) -> &mut UiBase {&mut self.uibase}
 }
 impl MyNode {
+    #[allow(dead_code)]
     fn new(p: [f64;2], n: String, id: WidgetId) -> MyNode {
         let mut node = MyNode::default();
         node.name = n;
@@ -101,18 +102,17 @@ fn main () {
     };
 
     // Initialize the graph structure
-    let mut graph = Graph::default();
-    let a = graph.add_node(MyNode::new([-200.0, -200.0], "Stuff".to_string(),WidgetId(50)));
-    let b = graph.add_node(MyNode::new([50.0, 100.0], "Things".to_string(),WidgetId(85)));
-    let c = graph.add_node(MyNode::new([100.0, -100.0], "Whatever".to_string(),WidgetId(120)));
+    let mut graph: Graph<MyEdge,MyNode> = Graph::default();
+    let mut tools = ToolPane::new(&mut graph,"Some Project Name".to_string());
+
+    let a = tools.new_node(&mut graph);
+    let b = tools.new_node(&mut graph);
+    let c = tools.new_node(&mut graph);
+
     graph.direct(&a,&b, MyEdge::default());
     graph.direct(&b,&c, MyEdge::default());
-
-    //println!("{:?}", graph);
-
-    let mut tools = ToolPane::new(&mut graph,"Some Project Name".to_string());
-    //tools.on_save(|graph| println!("{:?}", graph));
-
+    graph.direct(&a,&c, MyEdge::default());
+    
     // Poll events from the window.
     for event in window.ups(60) {
         ui.handle_event(&event);
