@@ -2,16 +2,8 @@
 name = "mush"
 version = "0.1.0"
 authors = ["viperscape <chrisfgill@gmail.com>"]
-license = "MIT"
-
-[[bin]]
-name = "demo"
-path = "examples/demo.rs"
-
+license = "Apache-2.0"
+keywords = ["visual","gui","graph"]
+repository = "https://github.com/PistonDevelopers/mush"
 
 [dependencies]
-uuid = "0.1"
-rustc-serialize = "0.3.16"
-conrod = "*"
-find_folder = "0.3.0"
-piston_window = "0.33.0"
