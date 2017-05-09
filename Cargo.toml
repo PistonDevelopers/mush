@@ -1,9 +1,10 @@
 [package]
 name = "mush"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["viperscape <chrisfgill@gmail.com>"]
 license = "Apache-2.0"
 keywords = ["visual","gui","graph"]
 repository = "https://github.com/PistonDevelopers/mush"
+description = "Visual graph/dialogue editor"
 
 [dependencies]
