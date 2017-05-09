@@ -1,8 +1,3 @@
 target
-/target
+Cargo.lock
 *~
-#*
-.#*
-*.bu
-*#*#
-/tmp*
