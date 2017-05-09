@@ -2,8 +2,9 @@ use conrod::{Button,Positionable, Text, Sizeable,Widget,WidgetId,Canvas,Colorabl
 use piston_window::Glyphs;
 use ::{Backend,Graph,GraphNode,GraphEdge,Nid};
 
-pub type Ui = ::conrod::Ui<Glyphs>;
+use std::collections::HashMap;
 
+pub type Ui = ::conrod::Ui<Glyphs>;
 
 pub trait UiNode: GraphNode {
     fn get_ui(&self) -> &UiBase;
@@ -109,6 +110,9 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
     fn render(&mut self, ui: &mut Ui) {
         let mut select: (Option<Nid>,Option<Nid>) = (None,None);
         let mut edges: Vec<(Nid,Vec<Nid>)> = vec!();
+
+        // NOTE: this might change when we start tracking connection types
+        let mut sockets_from = HashMap::new(); // track socket connections for layout
         
         self.with_nodes_mut(|n| {
             let is_select = n.get_ui().select;
@@ -135,11 +139,8 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             }
         });
 
-        let socket_id_out = 1;
-        let line_id = 2;
-        let socket_id_in = 3;
-
-        let socket_offset = 20.; //20px offset
+        let socket_size = 10.;
+        let socket_offset = 3.*socket_size;
         
         // build edges
         // NOTE: these edges represent forward-edges only
@@ -148,8 +149,7 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             let n = self.get_node(&nid).unwrap();
             let nui = n.get_ui();
             
-            let id = nui.get_id().0 * 20; //allot 20 spaces per node
-            let id = WidgetId(id + 1000); // place in 1k range
+            let id = nui.get_id().0 +10;
 
             let mut from_pos = *n.get_position();
             
@@ -160,16 +160,19 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
                 from_pos[0] -= nui.width/2.;
                 
                 let k = k + 1;
+
+                let from_count = sockets_from.entry(en).or_insert(0);
+                *from_count += 1; //inc sock count from-connections
                 
                 if let Some(n2) = self.get_node(&en) {
                     let mut to_pos = *n2.get_position();
                     if !n2.get_ui().collapse {
-                        to_pos[1] -= k as f64 -1. +socket_offset;
+                        to_pos[1] -= *from_count as f64 * socket_offset;
                     }
                     to_pos[0] += n2.get_ui().width/2.;
                     
                     Line::abs(from_pos, to_pos)
-                        .set(id+line_id*k, ui);
+                        .set(WidgetId((::MAX_CONN*2) + id + k), ui);
                 }
             }
         }
@@ -185,31 +188,40 @@ impl<E:GraphEdge,N:UiNode> UiGraph for Graph<E,N> {
             let n = self.get_node(&nid).unwrap();
             let nui = n.get_ui();
 
-            let id = nui.get_id().0 * 20; //allot 20 spaces per node
-            let id = WidgetId(id + 1000); // place in 1k range
+            let id = nui.get_id().0 + 10;
 
             let mut from_pos = *n.get_position();
-            if !nui.collapse {
-                from_pos[1] -= j as f64+socket_offset;
-            }
             from_pos[0] -= nui.width/2.;
             
-            Circle::fill_with(10.,color::LIGHT_BLUE)
-                .xy(from_pos)
-                .set(id+socket_id_out, ui);
-            
+
             for (k,en) in ev.iter().enumerate() {
                 let k = k + 1;
+                let from_count = sockets_from.get(en).unwrap();
+
+                if !nui.collapse {
+                    from_pos[1] -= (j + k) as f64+socket_offset;
+                }
+
+                let id = WidgetId(id+j+k);
+                Circle::fill_with(socket_size,color::LIGHT_BLUE)
+                    .xy(from_pos)
+                    .set(id, ui);
+                
                 if let Some(n2) = self.get_node(&en) {
                     let mut to_pos = *n2.get_position();
                     if !n2.get_ui().collapse {
-                        to_pos[1] -= k as f64 -1. +socket_offset;
+                        to_pos[1] -= *from_count as f64 * socket_offset;
                     }
                     to_pos[0] += n2.get_ui().width/2.;
                     
-                    Circle::fill_with(10.,color::ORANGE)
+                    let id2 = n2.get_ui().get_id().0 + 10;
+                    let id2 = WidgetId(id2+j+k + ::MAX_CONN);
+                    
+                    Circle::fill_with(socket_size,color::ORANGE)
                         .xy(to_pos)
-                        .set(id+socket_id_in*k, ui);
+                        .set(id2, ui);
+
+                    println!("{:?}",id2);
                 }
             }
         }
