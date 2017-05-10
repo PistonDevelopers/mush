@@ -6,7 +6,7 @@ use imgui::{ImGui, Ui, ImGuiKey};
 use imgui_glium_renderer::Renderer;
 use std::time::Instant;
 
-pub struct Support {
+pub struct Interface {
     display: GlutinFacade,
     imgui: ImGui,
     renderer: Renderer,
@@ -16,34 +16,33 @@ pub struct Support {
     mouse_wheel: f32,
 }
 
-impl Support {
-    pub fn init() -> Support {
-        let display = glutin::WindowBuilder::new().build_glium().unwrap();
+impl Interface {
+    pub fn init() -> Interface {
+        let display = glutin::WindowBuilder::new()
+            .with_title("mush")
+            .with_dimensions(1280,720)
+            .build_glium().expect("ERROR: Unable to create GL Window context");
 
         let mut imgui = ImGui::init();
-        let renderer = Renderer::init(&mut imgui, &display).unwrap();
+        let renderer = Renderer::init(&mut imgui, &display)
+            .expect("ERROR: Unable to create GL Renderer context");
 
-        imgui.set_imgui_key(ImGuiKey::Tab, 0);
-        imgui.set_imgui_key(ImGuiKey::LeftArrow, 1);
-        imgui.set_imgui_key(ImGuiKey::RightArrow, 2);
-        imgui.set_imgui_key(ImGuiKey::UpArrow, 3);
-        imgui.set_imgui_key(ImGuiKey::DownArrow, 4);
-        imgui.set_imgui_key(ImGuiKey::PageUp, 5);
-        imgui.set_imgui_key(ImGuiKey::PageDown, 6);
-        imgui.set_imgui_key(ImGuiKey::Home, 7);
-        imgui.set_imgui_key(ImGuiKey::End, 8);
-        imgui.set_imgui_key(ImGuiKey::Delete, 9);
-        imgui.set_imgui_key(ImGuiKey::Backspace, 10);
-        imgui.set_imgui_key(ImGuiKey::Enter, 11);
-        imgui.set_imgui_key(ImGuiKey::Escape, 12);
-        imgui.set_imgui_key(ImGuiKey::A, 13);
-        imgui.set_imgui_key(ImGuiKey::C, 14);
-        imgui.set_imgui_key(ImGuiKey::V, 15);
-        imgui.set_imgui_key(ImGuiKey::X, 16);
-        imgui.set_imgui_key(ImGuiKey::Y, 17);
-        imgui.set_imgui_key(ImGuiKey::Z, 18);
+        // map key codes from glutin to imgui
+        imgui.set_imgui_key(ImGuiKey::Tab, VirtualKeyCode::Tab as u8);
+        imgui.set_imgui_key(ImGuiKey::LeftArrow, VirtualKeyCode::Left as u8);
+        imgui.set_imgui_key(ImGuiKey::RightArrow, VirtualKeyCode::Right as u8);
+        imgui.set_imgui_key(ImGuiKey::UpArrow, VirtualKeyCode::Up as u8);
+        imgui.set_imgui_key(ImGuiKey::DownArrow, VirtualKeyCode::Down as u8);
+        imgui.set_imgui_key(ImGuiKey::PageUp, VirtualKeyCode::PageUp as u8);
+        imgui.set_imgui_key(ImGuiKey::PageDown, VirtualKeyCode::PageDown as u8);
+        imgui.set_imgui_key(ImGuiKey::Home, VirtualKeyCode::Home as u8);
+        imgui.set_imgui_key(ImGuiKey::End, VirtualKeyCode::End as u8);
+        imgui.set_imgui_key(ImGuiKey::Delete, VirtualKeyCode::Delete as u8);
+        imgui.set_imgui_key(ImGuiKey::Backspace, VirtualKeyCode::Back as u8);
+        imgui.set_imgui_key(ImGuiKey::Enter, VirtualKeyCode::Return as u8);
+        imgui.set_imgui_key(ImGuiKey::Escape, VirtualKeyCode::Escape as u8);
 
-        Support {
+        Interface {
             display: display,
             imgui: imgui,
             renderer: renderer,
@@ -54,7 +53,7 @@ impl Support {
         }
     }
 
-    pub fn update_mouse(&mut self) {
+    fn update_mouse(&mut self) {
         let scale = self.imgui.display_framebuffer_scale();
         self.imgui
             .set_mouse_pos(self.mouse_pos.0 as f32 / scale.0,
@@ -69,56 +68,38 @@ impl Support {
         self.mouse_wheel = 0.0;
     }
 
-    pub fn render<F: FnMut(&Ui)>(&mut self, clear_color: (f32, f32, f32, f32), mut run_ui: F) {
+    pub fn render<F: FnMut(&Ui)>(&mut self, clear_color: (f32, f32, f32, f32), mut run_ui: F) -> bool {
         let now = Instant::now();
         let delta = now - self.last_frame;
         let delta_s = delta.as_secs() as f32 + delta.subsec_nanos() as f32 / 1_000_000_000.0;
         self.last_frame = now;
 
-        self.update_mouse();
-
         let mut target = self.display.draw();
         target.clear_color(clear_color.0, clear_color.1, clear_color.2, clear_color.3);
 
-        let window = self.display.get_window().unwrap();
-        let size_points = window.get_inner_size_points().unwrap();
-        let size_pixels = window.get_inner_size_pixels().unwrap();
+        if let Some(window) = self.display.get_window() {
+            let size_points = window.get_inner_size_points().unwrap();
+            let size_pixels = window.get_inner_size_pixels().unwrap();
 
-        let ui = self.imgui.frame(size_points, size_pixels, delta_s);
+            let ui = self.imgui.frame(size_points, size_pixels, delta_s);
+            run_ui(&ui);
 
-        run_ui(&ui);
+            let _ = self.renderer.render(&mut target, ui);
+        }
 
-        self.renderer.render(&mut target, ui).unwrap();
+        let _ = target.finish();
 
-        target.finish().unwrap();
+        self.update_mouse();
+        self.update_events()
     }
 
-    pub fn update_events(&mut self) -> bool {
+    fn update_events(&mut self) -> bool {
         for event in self.display.poll_events() {
             match event {
                 Event::Closed => return false,
                 Event::KeyboardInput(state, _, code) => {
                     let pressed = state == ElementState::Pressed;
                     match code {
-                        Some(VirtualKeyCode::Tab) => self.imgui.set_key(0, pressed),
-                        Some(VirtualKeyCode::Left) => self.imgui.set_key(1, pressed),
-                        Some(VirtualKeyCode::Right) => self.imgui.set_key(2, pressed),
-                        Some(VirtualKeyCode::Up) => self.imgui.set_key(3, pressed),
-                        Some(VirtualKeyCode::Down) => self.imgui.set_key(4, pressed),
-                        Some(VirtualKeyCode::PageUp) => self.imgui.set_key(5, pressed),
-                        Some(VirtualKeyCode::PageDown) => self.imgui.set_key(6, pressed),
-                        Some(VirtualKeyCode::Home) => self.imgui.set_key(7, pressed),
-                        Some(VirtualKeyCode::End) => self.imgui.set_key(8, pressed),
-                        Some(VirtualKeyCode::Delete) => self.imgui.set_key(9, pressed),
-                        Some(VirtualKeyCode::Back) => self.imgui.set_key(10, pressed),
-                        Some(VirtualKeyCode::Return) => self.imgui.set_key(11, pressed),
-                        Some(VirtualKeyCode::Escape) => self.imgui.set_key(12, pressed),
-                        Some(VirtualKeyCode::A) => self.imgui.set_key(13, pressed),
-                        Some(VirtualKeyCode::C) => self.imgui.set_key(14, pressed),
-                        Some(VirtualKeyCode::V) => self.imgui.set_key(15, pressed),
-                        Some(VirtualKeyCode::X) => self.imgui.set_key(16, pressed),
-                        Some(VirtualKeyCode::Y) => self.imgui.set_key(17, pressed),
-                        Some(VirtualKeyCode::Z) => self.imgui.set_key(18, pressed),
                         Some(VirtualKeyCode::LControl) |
                         Some(VirtualKeyCode::RControl) => self.imgui.set_key_ctrl(pressed),
                         Some(VirtualKeyCode::LShift) |
@@ -127,6 +108,7 @@ impl Support {
                         Some(VirtualKeyCode::RAlt) => self.imgui.set_key_alt(pressed),
                         Some(VirtualKeyCode::LWin) |
                         Some(VirtualKeyCode::RWin) => self.imgui.set_key_super(pressed),
+                        Some(code) => self.imgui.set_key(code as u8, pressed),
                         _ => {}
                     }
                 }

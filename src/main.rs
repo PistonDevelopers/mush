@@ -1,21 +1,13 @@
-extern crate imgui;
-extern crate glium;
-extern crate imgui_glium_renderer;
-
-mod support;
-use support::Support;
+extern crate mush;
+use mush::interface::Interface;
 
 const CLEAR_COLOR: (f32, f32, f32, f32) = (0.2, 0.2, 0.2, 1.0);
 
 fn main() {
-    let mut support = Support::init();
+    let mut ifc = Interface::init();
 
     loop {
-        let mut open = true;
-        support.render(CLEAR_COLOR, |ui| ui.show_test_window(&mut open));
-        let active = support.update_events();
-        if !active || !open {
-            break;
-        }
+        let r = ifc.render(CLEAR_COLOR, |ui| {} );
+        if !r { break }
     }
 }
