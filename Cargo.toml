@@ -8,3 +8,6 @@ repository = "https://github.com/PistonDevelopers/mush"
 description = "Visual graph/dialogue editor"
 
 [dependencies]
+imgui = "0.0.13"
+glium = { version = "0.16", default-features = true }
+imgui-glium-renderer = "0.0.13"
