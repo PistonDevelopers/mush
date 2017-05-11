@@ -5,7 +5,7 @@ use mush::interface::Interface;
 use imgui::{Ui,ImStr,ImString};
 
 use std::fs;
-//use std::path::Path;
+use std::path::Path;
 
 use std::time::{Duration,Instant};
 use std::thread;
@@ -84,6 +84,14 @@ impl FileState {
                 self.idx = 1;
             }
         }
+
+        if self.idx < 1 {
+            let cd = self.cd.to_string();
+            let path = Path::new(&cd).parent().expect("ERROR: No Parent path");
+            self.cd.clear();
+            self.cd.push_str(im_str!("{:}",path.to_str().unwrap()));
+            self.idx = 1;
+        }
         
         if let Ok(paths) = fs::read_dir(&self.cd.to_string()) {
             self.files = paths
@@ -93,7 +101,13 @@ impl FileState {
                 })
                 .collect();
         }
-        else { self.idx = 0; }
+        else {
+            let cd = self.cd.to_string();
+            let path = Path::new(&cd).parent().expect("ERROR: No Parent path");
+            self.cd.clear();
+            self.cd.push_str(im_str!("{:}",path.to_str().unwrap()));
+            self.idx = 1;
+        }
 
         self.files.insert(0,"./".to_owned());
         self.files.insert(0,"..".to_owned());
