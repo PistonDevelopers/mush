@@ -21,18 +21,33 @@ struct State {
 }
 impl Default for State {
     fn default() -> Self {
-        State { exit: false }
+        State {
+            exit: false,
+        }
     }
 }
 
 
 fn menu (ui: &Ui, state: &mut State) {
+    let mut opening = false;
+    
     ui.main_menu_bar(|| {
         ui.menu(im_str!("File"))
             .build(|| {
+                ui.menu_item(im_str!("Open"))
+                    .selected(&mut opening)
+                    .build();
+                
                 ui.menu_item(im_str!("Exit"))
                     .selected(&mut state.exit)
                     .build();
             });
+    });
+
+    if opening { ui.open_popup(im_str!("select-file")); }
+    ui.popup(im_str!("select-file"), || {
+        ui.text(im_str!("Select File"));
+        ui.separator();
+        
     });
 }
