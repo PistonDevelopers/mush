@@ -4,7 +4,7 @@ extern crate mush;
 use mush::interface::Interface;
 use imgui::Ui;
 
-const CLEAR_COLOR: (f32, f32, f32, f32) = (0.2, 0.2, 0.2, 1.0);
+const CLEAR_COLOR: (f32, f32, f32, f32) = (0.006, 0.006, 0.006, 1.0);
 
 fn main() {
     let mut ifc = Interface::init();
