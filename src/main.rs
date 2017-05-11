@@ -69,7 +69,7 @@ impl Default for FileState {
         
         FileState {
             cd: cd,
-            idx: 0,
+            idx: 1,
             files: vec![],
         }
     }
@@ -77,6 +77,14 @@ impl Default for FileState {
 
 impl FileState {
     fn update(&mut self) {
+        if self.idx != 1 {
+            if let Some(file) = self.files.get(self.idx as usize) {
+                self.cd.clear();
+                self.cd.push_str(file);
+                self.idx = 1;
+            }
+        }
+        
         if let Ok(paths) = fs::read_dir(&self.cd.to_string()) {
             self.files = paths
                 .filter(|p| p.is_ok())
@@ -85,6 +93,10 @@ impl FileState {
                 })
                 .collect();
         }
+        else { self.idx = 0; }
+
+        self.files.insert(0,"./".to_owned());
+        self.files.insert(0,"..".to_owned());
     }
 }
 
