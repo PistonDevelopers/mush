@@ -78,13 +78,15 @@ impl Interface {
         target.clear_color(clear_color.0, clear_color.1, clear_color.2, clear_color.3);
 
         if let Some(window) = self.display.get_window() {
-            let size_points = window.get_inner_size_points().unwrap();
-            let size_pixels = window.get_inner_size_pixels().unwrap();
+            match (window.get_inner_size_points(),window.get_inner_size_pixels()) {
+                (Some(points),Some(pixels)) => {
+                    let ui = self.imgui.frame(points, pixels, delta_s);
+                    run_ui(&ui);
 
-            let ui = self.imgui.frame(size_points, size_pixels, delta_s);
-            run_ui(&ui);
-
-            let _ = self.renderer.render(&mut target, ui);
+                    let _ = self.renderer.render(&mut target, ui);
+                },
+                _ => {}
+            }
         }
 
         let _ = target.finish();
