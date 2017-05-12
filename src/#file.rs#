@@ -85,7 +85,7 @@ impl FileState {
                 self.update();
 
                 // NOTE: to appease the borrow checker and have the proper argument for list_box
-                // we must do build the list in two steps
+                // we must build the list in two steps
                 let paths: Vec<ImString> = self.files.iter().map(|p| {
                     im_str!("{:}", p).to_owned()
                 })
