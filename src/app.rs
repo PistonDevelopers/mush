@@ -34,9 +34,18 @@ impl AppState {
         if let Some(ref env) = self.env {
             ui.window(im_str!("Environment Parsed"))
                 .build(||{
+                    ui.text(im_str!("Def Blocks"));
+                    ui.separator();
+                    
                     for def in env.def.keys() {
                         ui.text(im_str!("{:?}",def));
                     }
+                    
+                    ui.separator();
+                    ui.separator();
+
+                    ui.text(im_str!("Src Blocks"));
+                    ui.separator();
 
                     for src in env.src.keys() {
                         ui.text(im_str!("{:?}",src));
