@@ -2,6 +2,8 @@
 
 def my-env
     size 5
+    has_item false
+    name "Io"
 ;
 
 root
