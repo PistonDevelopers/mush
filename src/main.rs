@@ -1,4 +1,3 @@
-#[macro_use]
 extern crate imgui;
 
 extern crate mush;
@@ -28,7 +27,7 @@ fn main() {
             app.render(ui);
             file.render(ui, &mut app);
 
-            // ui.show_test_window(&mut true) // NOTE: use for imgui examples
+            //ui.show_test_window(&mut true) // NOTE: use for imgui examples
         });
         if !r | app.exit{ break }
 
