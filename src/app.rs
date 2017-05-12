@@ -30,5 +30,18 @@ impl AppState {
                         .build();
                 });
         });
+
+        if let Some(ref env) = self.env {
+            ui.window(im_str!("Environment Parsed"))
+                .build(||{
+                    for def in env.def.keys() {
+                        ui.text(im_str!("{:?}",def));
+                    }
+
+                    for src in env.src.keys() {
+                        ui.text(im_str!("{:?}",src));
+                    }
+                });
+        }
     }
 }

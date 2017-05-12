@@ -112,7 +112,7 @@ impl FileState {
     
     pub fn render (&mut self, ui: &Ui, state: &mut AppState) {
         if !state.open_file { return }
-        state.env = self.update();
+        state.env = self.update(); // NOTE: we should check if the environment is empty
         state.open_file = !state.env.is_some(); // close file if done
         
         ui.window(im_str!("Select source"))
