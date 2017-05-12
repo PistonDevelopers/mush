@@ -1,9 +1,15 @@
 use imgui::{Ui,ImStr,ImString};
+use lichen::parse::{StreamParser,Env};
 
 use std::fs;
 use std::path::Path;
 
 use app::AppState;
+
+use std::io::{BufReader};
+use std::fs::File;
+
+
 
 pub struct FileState {
     /// MAX_PATH set to 260 chars
@@ -11,6 +17,7 @@ pub struct FileState {
     idx: i32,
     files: Vec<String>,
     selected: Option<String>,
+    stream: Option<StreamParser<BufReader<File>>>,
 }
 
 impl Default for FileState {
@@ -23,12 +30,13 @@ impl Default for FileState {
             idx: 1,
             files: vec![],
             selected: None,
+            stream: None,
         }
     }
 }
 
 impl FileState {
-    fn update(&mut self) {
+    fn update(&mut self) -> Option<Env> {
         if self.idx > 1 { // chose a file?
             if let Some(file) = self.files.get(self.idx as usize) {
                 self.cd.clear();
@@ -60,6 +68,34 @@ impl FileState {
                 self.selected = Some(cd);
             }
         }
+
+        
+        if self.stream.is_some() { self.step_stream() }
+        else { None }
+    }
+
+    /// Steps through the stream chunks, finally returns parsed lichen environment
+    fn step_stream (&mut self) -> Option<Env> {
+        let r = {
+            if let Some(ref mut stream) = self.stream {
+                stream.next()
+            }
+            else { None }
+        };
+        
+        if r.is_none() { // close stream, we're probably done
+            let mut env = Env::empty();
+            if let Some(ref mut stream) = self.stream {
+                stream.sink(&mut env);
+            }
+            
+            self.stream = None;
+            self.to_parent();
+            
+            return Some(env);
+        }
+
+        None
     }
 
     fn to_parent(&mut self) {
@@ -76,6 +112,8 @@ impl FileState {
     
     pub fn render (&mut self, ui: &Ui, state: &mut AppState) {
         if !state.open_file { return }
+        state.env = self.update();
+        state.open_file = !state.env.is_some(); // close file if done
         
         ui.window(im_str!("Select source"))
             .always_auto_resize(true)
@@ -89,8 +127,6 @@ impl FileState {
                     .enter_returns_true(true)
                     .build();
                 ui.separator();
-
-                self.update();
 
                 // NOTE: to appease the borrow checker and have the proper argument for list_box
                 // we must build the list in two steps
@@ -109,6 +145,11 @@ impl FileState {
                     ui.text(im_str!("Select File {:}?",file));
                     
                     if ui.small_button(im_str!("open")) {
+                        if let Ok(f) = File::open(file) {
+                            let f = BufReader::new(f);
+                            let s = StreamParser::new(f,None);
+                            self.stream = Some(s);
+                        }
                     }
                 }
             })

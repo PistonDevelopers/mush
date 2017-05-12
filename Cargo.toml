@@ -11,3 +11,4 @@ description = "Visual graph/dialogue editor"
 imgui = {git = "https://github.com/Gekkio/imgui-rs", version = "0.0.14-pre"}
 glium = { version = "0.16", default-features = true }
 imgui-glium-renderer =  {git = "https://github.com/Gekkio/imgui-rs", version = "0.0.14-pre"}
+lichen = "0.2"

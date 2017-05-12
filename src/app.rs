@@ -1,14 +1,17 @@
 use imgui::{Ui};
+use lichen::parse::Env;
 
 pub struct AppState {
     pub exit: bool,
     pub open_file: bool,
+    pub env: Option<Env>,
 }
 impl Default for AppState {
     fn default() -> Self {
         AppState {
             exit: false,
             open_file: true,
+            env: None,
         }
     }
 }
