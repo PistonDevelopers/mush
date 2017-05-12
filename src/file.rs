@@ -106,14 +106,11 @@ impl FileState {
                             &paths[..],
                             paths.len() as i32);
 
-                match self.selected {
-                    Some(ref file) => {
-                        ui.text(im_str!("Select File {:}?",file));
-                        
-                        if ui.small_button(im_str!("open")) {
-                        }
-                    },
-                    _ => {},
+                if let Some(ref file) = self.selected {
+                    ui.text(im_str!("Select File {:}?",file));
+                    
+                    if ui.small_button(im_str!("open")) {
+                    }
                 }
             })
     }
