@@ -96,8 +96,7 @@ impl FileState {
                 // we must build the list in two steps
                 let paths: Vec<ImString> = self.files.iter().map(|p| {
                     im_str!("{:}", p).to_owned()
-                })
-                    .collect();
+                }).collect();
 
                 let paths: Vec<&ImStr> = paths.iter().map(|p|p.as_ref()).collect();
                 
