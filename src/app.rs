@@ -1,4 +1,4 @@
-use imgui::{Ui};
+use imgui::{Ui,ImGuiSetCond_Once};
 use lichen::parse::Env;
 
 pub struct AppState {
@@ -34,23 +34,43 @@ impl AppState {
         if let Some(ref env) = self.env {
             ui.window(im_str!("Environment Parsed"))
                 .build(||{
-                    ui.text(im_str!("Def Blocks"));
-                    ui.separator();
+                    ui.tree_node(im_str!("Def Blocks"))
+                        .opened(true, ImGuiSetCond_Once)
+                        .build(|| {
+                            for k in env.def.keys() {
+                                if ui.collapsing_header(im_str!("{:?}",k))
+                                    .build() {
+                                        let block = env.def.get(k).unwrap();
+                                        for (k,v) in block.def.iter() {
+                                            let info = im_str!("{:}: {:?}",k,v);
+                                            if ui.small_button(info) {
+                                                
+                                            }
+                                        }
+                                    }
+                            }
+                        });
                     
-                    for def in env.def.keys() {
-                        ui.text(im_str!("{:?}",def));
-                    }
                     
-                    ui.separator();
-                    ui.separator();
-
-                    ui.text(im_str!("Src Blocks"));
-                    ui.separator();
-
-                    for src in env.src.keys() {
-                        ui.text(im_str!("{:?}",src));
-                    }
+                    ui.tree_node(im_str!("Src Blocks"))
+                        .opened(true, ImGuiSetCond_Once)
+                        .build(|| {
+                            for k in env.src.keys() {
+                                if ui.collapsing_header(im_str!("{:?}",k))
+                                    .build() {
+                                        let block = env.src.get(k).unwrap();
+                                        for src in block.src.iter() {
+                                            let info = im_str!("{:?}",src);
+                                            if ui.small_button(info) {
+                                                
+                                            }
+                                        }
+                                    }
+                            }
+                        });
                 });
+        
         }
+
     }
 }
