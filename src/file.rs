@@ -29,8 +29,6 @@ impl Default for FileState {
 
 impl FileState {
     fn update(&mut self) {
-        let cd = self.cd.to_string();
-        
         if self.idx > 1 { // chose a file?
             if let Some(file) = self.files.get(self.idx as usize) {
                 self.cd.clear();
@@ -39,17 +37,12 @@ impl FileState {
             }
         }
         else if self.idx < 1 { // up a directory?
-            if let Some(path) = Path::new(&cd).parent() {
-                self.cd.clear();
-                self.cd.push_str(path.to_str().expect("ERROR: Cannot parse path into string"));
-                self.idx = 1;
-            }
-            // NOTE: this fails if we're at the top of a relative directory listing,
-            // or the root of the drive/share
+            self.to_parent();
         }
 
+        let cd = self.cd.to_string();
         if Path::new(&cd).is_dir() {
-            if let Ok(paths) = fs::read_dir(cd) {
+            if let Ok(paths) = fs::read_dir(&cd) {
                 self.files = paths
                     .filter(|p| p.is_ok())
                     .map(|p| {
@@ -62,7 +55,22 @@ impl FileState {
             }
             // NOTE: we should throw a warning here if directory cannot be traversed
         }
-        else { self.selected = Some(cd); }
+        else {
+            if !cd.is_empty() {
+                self.selected = Some(cd);
+            }
+        }
+    }
+
+    fn to_parent(&mut self) {
+        self.selected = None;
+        if let Some(path) = Path::new(&self.cd.to_string()).parent() {
+            self.cd.clear();
+            self.cd.push_str(path.to_str().expect("ERROR: Cannot parse path into string"));
+            self.idx = 1;
+        }
+        // NOTE: this fails if we're at the top of a relative directory listing,
+        // or the root of the drive/share
     }
 
     
@@ -97,6 +105,16 @@ impl FileState {
                             &mut self.idx,
                             &paths[..],
                             paths.len() as i32);
+
+                match self.selected {
+                    Some(ref file) => {
+                        ui.text(im_str!("Select File {:}?",file));
+                        
+                        if ui.small_button(im_str!("open")) {
+                        }
+                    },
+                    _ => {},
+                }
             })
     }
 
