@@ -27,6 +27,8 @@ fn main() {
         let r = ifc.render(CLEAR_COLOR, |ui| {
             app.render(ui);
             file.render(ui, &mut app);
+
+            // ui.show_test_window(&mut true) // NOTE: use for imgui examples
         });
         if !r | app.exit{ break }
 
