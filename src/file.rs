@@ -40,7 +40,7 @@ impl Default for FileState {
 impl FileState {
     fn update(&mut self) -> Option<Env> {
         if self.idx > 1 { // chose a file?
-            self.failed = "".to_owned();
+            self.failed.clear();
             
             if let Some(file) = self.files.get(self.idx as usize) {
                 self.cd.clear();
@@ -49,7 +49,7 @@ impl FileState {
             }
         }
         else if self.idx < 1 { // up a directory?
-            self.failed = "".to_owned();
+            self.failed.clear();
             self.to_parent();
         }
 
@@ -167,15 +167,10 @@ impl FileState {
                     }
                 }
 
-                let mut failure = "".to_owned();
                 if !self.failed.is_empty() {
-                    failure.push_str("Failed to parse file ");
-                    failure.push_str(&self.cd.to_str());
-                    failure.push_str("\nParse Error at: ");
-                    failure.push_str(&self.failed);
+                    ui.text(im_str!("Failed to parse file {:}\nParse Error at: {:}",
+                                    &self.cd.to_str(), &self.failed));
                 }
-
-                ui.text(im_str!("{:}", failure));
             })
     }
 
