@@ -39,16 +39,16 @@ impl Default for FileState {
 
 impl FileState {
     fn update(&mut self) -> Option<Env> {
-        if self.idx > 1 { // chose a file?
+        if self.idx > 0 { // chose a file?
             self.failed.clear();
             
             if let Some(file) = self.files.get(self.idx as usize) {
                 self.cd.clear();
                 self.cd.push_str(file);
-                self.idx = 1;
+                self.idx = -1;
             }
         }
-        else if self.idx < 1 { // up a directory?
+        else if self.idx == 0 { // up a directory?
             self.failed.clear();
             self.to_parent();
         }
@@ -63,7 +63,7 @@ impl FileState {
                     })
                     .collect();
 
-                self.files.insert(0,"./".to_owned());
+                //self.files.insert(0,"./".to_owned());
                 self.files.insert(0,"..".to_owned());
             }
             // NOTE: we should throw a warning here if directory cannot be traversed
@@ -117,7 +117,7 @@ impl FileState {
         if let Some(path) = Path::new(&self.cd.to_string()).parent() {
             self.cd.clear();
             self.cd.push_str(path.to_str().expect("ERROR: Cannot parse path into string"));
-            self.idx = 1;
+            self.idx = -1;
         }
         // NOTE: this fails if we're at the top of a relative directory listing,
         // or the root of the drive/share
