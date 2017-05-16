@@ -63,7 +63,6 @@ impl FileState {
                     })
                     .collect();
 
-                //self.files.insert(0,"./".to_owned());
                 self.files.insert(0,"..".to_owned());
             }
             // NOTE: we should throw a warning here if directory cannot be traversed
