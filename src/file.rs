@@ -43,8 +43,15 @@ impl FileState {
             self.failed.clear();
             
             if let Some(file) = self.files.get(self.idx as usize) {
+                let mut p = Path::new(&self.cd.to_str()).join(Path::new(&file));
+                if !p.is_dir() && !p.is_file() {
+                    if let Some(p_) = Path::new(&self.cd.to_str()).parent() {
+                        p = p_.join(Path::new(&file));
+                    }
+                }
+
                 self.cd.clear();
-                self.cd.push_str(file);
+                self.cd.push_str(p.to_str().unwrap());
                 self.idx = -1;
             }
         }
@@ -59,17 +66,25 @@ impl FileState {
                 self.files = paths
                     .filter(|p| p.is_ok())
                     .map(|p| {
-                        p.unwrap().path().as_path().to_str().unwrap().to_owned()
+                        p.unwrap().path().as_path()
+                            .iter().last().expect("Invalid listing")
+                            .to_str().expect("Non-UTF8 Filename found").to_owned()
                     })
                     .collect();
 
                 self.files.insert(0,"..".to_owned());
             }
-            // NOTE: we should throw a warning here if directory cannot be traversed
+            else { self.to_parent(); }
         }
         else {
             if !cd.is_empty() {
-                self.selected = Some(cd);
+                let p = Path::new(&cd);
+                let file: &str = p
+                    .iter().last().expect("Invalid listing")
+                    .to_str().expect("Non-UTF8 Filename found");
+                self.selected = Some(file.to_owned());
+                self.cd.clear();
+                self.cd.push_str(p.to_str().unwrap());
             }
         }
 
@@ -129,9 +144,7 @@ impl FileState {
         state.open_file = !state.env.is_some(); // close file if done
 
         ui.window(im_str!("Select source"))
-            .always_auto_resize(true)
             .movable(true)
-            .show_borders(true)
             .opened(&mut state.open_file)
             .build(||{
                 ui.text(im_str!("Select a source file to be parsed and evaluated.\nSource files must be parsable through the lichen crate."));
@@ -158,7 +171,7 @@ impl FileState {
                     ui.text(im_str!("Select File {:}?",file));
                     
                     if ui.small_button(im_str!("open")) {
-                        if let Ok(f) = File::open(file) {
+                        if let Ok(f) = File::open(Path::new(&self.cd.to_str())) {
                             let f = BufReader::new(f);
                             let s = StreamParser::new(f,None);
                             self.stream = Some(s);
