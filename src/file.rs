@@ -41,6 +41,7 @@ impl FileState {
     fn update(&mut self) -> Option<Env> {
         if self.idx > 1 { // chose a file?
             self.failed = "".to_owned();
+            
             if let Some(file) = self.files.get(self.idx as usize) {
                 self.cd.clear();
                 self.cd.push_str(file);
@@ -70,12 +71,17 @@ impl FileState {
         else {
             if !cd.is_empty() {
                 self.selected = Some(cd);
-                self.failed = "".to_owned();
             }
         }
 
         
-        if self.stream.is_some() { self.step_stream() }
+        if self.stream.is_some() {
+            let r = self.step_stream();
+            if !self.failed.is_empty() {
+                self.stream = None;
+            }
+            r
+        }
         else { None }
     }
 
