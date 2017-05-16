@@ -18,6 +18,7 @@ pub struct FileState {
     files: Vec<String>,
     selected: Option<String>,
     stream: Option<StreamParser<BufReader<File>>>,
+    failed: String,
 }
 
 impl Default for FileState {
@@ -31,6 +32,7 @@ impl Default for FileState {
             files: vec![],
             selected: None,
             stream: None,
+            failed: "".to_owned(),
         }
     }
 }
@@ -38,6 +40,7 @@ impl Default for FileState {
 impl FileState {
     fn update(&mut self) -> Option<Env> {
         if self.idx > 1 { // chose a file?
+            self.failed = "".to_owned();
             if let Some(file) = self.files.get(self.idx as usize) {
                 self.cd.clear();
                 self.cd.push_str(file);
@@ -45,6 +48,7 @@ impl FileState {
             }
         }
         else if self.idx < 1 { // up a directory?
+            self.failed = "".to_owned();
             self.to_parent();
         }
 
@@ -66,6 +70,7 @@ impl FileState {
         else {
             if !cd.is_empty() {
                 self.selected = Some(cd);
+                self.failed = "".to_owned();
             }
         }
 
@@ -86,7 +91,10 @@ impl FileState {
         if r.is_none() { // close stream, we're probably done
             let mut env = Env::empty();
             if let Some(ref mut stream) = self.stream {
-                stream.sink(&mut env);
+                if let Err(e) = stream.sink(&mut env) {
+                    self.failed = e.to_owned();
+                    return None;
+                }
             }
             
             self.stream = None;
@@ -114,7 +122,7 @@ impl FileState {
         if !state.open_file { return }
         state.env = self.update(); // NOTE: we should check if the environment is empty
         state.open_file = !state.env.is_some(); // close file if done
-        
+
         ui.window(im_str!("Select source"))
             .always_auto_resize(true)
             .movable(true)
@@ -152,6 +160,16 @@ impl FileState {
                         }
                     }
                 }
+
+                let mut failure = "".to_owned();
+                if !self.failed.is_empty() {
+                    failure.push_str("Failed to parse file ");
+                    failure.push_str(&self.cd.to_str());
+                    failure.push_str("\nParse Error at: ");
+                    failure.push_str(&self.failed);
+                }
+
+                ui.text(im_str!("{:}", failure));
             })
     }
 
