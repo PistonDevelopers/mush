@@ -1,5 +1,5 @@
 use imgui::{Ui,ImStr, ImString, ImGuiSetCond_Once,ImGuiSelectableFlags,ImVec2};
-use lichen::parse::{Env,DefBlock};
+use lichen::parse::{Env};
 use lichen::var::Var;
 
 pub struct AppState {
